@@ -17,7 +17,8 @@ Workshop práctico de **Genie Code dentro de Databricks**, re-skineado por compl
 
 - **Fecha de entrega:** 2026-08-26 (Bogotá + Medellín)
 - **Repo destino:** https://github.com/davcas777/inchcape_geniecode
-- **App en vivo (workspace de David):** _(ver sección Despliegue)_
+- **App en vivo (workspace de David):** https://inchcape-geniecode-workshop-520209755093735.15.azure.databricksapps.com _(detrás de SSO del workspace)_
+- **Estado:** datos generados en `dacascan_ws1` · 29/29 prompts validados · app desplegada y RUNNING.
 
 ## Objetivo
 Que cada uno de los 5 equipos de Inchcape aprenda a usar Genie Code para acelerar su trabajo diario, cubriendo a alto nivel los temas que solicitaron, con prompts probados que funcionan sobre datos sintéticos del dominio automotriz + SAP.
