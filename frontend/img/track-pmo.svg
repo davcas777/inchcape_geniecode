@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 220" fill="none">
+  <!-- Background glow -->
+  <ellipse cx="140" cy="195" rx="100" ry="12" fill="#2D6CDF" opacity=".06"/>
+
+  <!-- Clipboard back -->
+  <rect x="78" y="40" width="124" height="150" rx="12" fill="#2D6CDF" fill-opacity=".07" stroke="#2D6CDF" stroke-opacity=".2" stroke-width="1.5"/>
+  <!-- Clip -->
+  <rect x="118" y="32" width="44" height="18" rx="6" fill="#2D6CDF" opacity=".35"/>
+  <rect x="128" y="28" width="24" height="12" rx="5" fill="#2D6CDF" opacity=".55"/>
+
+  <!-- Checklist rows -->
+  <g>
+    <rect x="94" y="66" width="18" height="18" rx="5" fill="#2D6CDF" opacity=".9"/>
+    <path d="M98 75 L102 79 L109 70" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="120" y="70" width="66" height="10" rx="4" fill="#2D6CDF" opacity=".3"/>
+  </g>
+  <g>
+    <rect x="94" y="96" width="18" height="18" rx="5" fill="#2D6CDF" opacity=".9"/>
+    <path d="M98 105 L102 109 L109 100" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="120" y="100" width="58" height="10" rx="4" fill="#2D6CDF" opacity=".3"/>
+  </g>
+  <g>
+    <rect x="94" y="126" width="18" height="18" rx="5" fill="none" stroke="#2D6CDF" stroke-width="2" opacity=".5"/>
+    <rect x="120" y="130" width="62" height="10" rx="4" fill="#2D6CDF" opacity=".2"/>
+  </g>
+  <g>
+    <rect x="94" y="156" width="18" height="18" rx="5" fill="none" stroke="#2D6CDF" stroke-width="2" opacity=".5"/>
+    <rect x="120" y="160" width="48" height="10" rx="4" fill="#2D6CDF" opacity=".2"/>
+  </g>
+
+  <!-- Sparkle (validation) -->
+  <path d="M210 96 L214 106 L210 116 L206 106Z" fill="#2D6CDF" opacity=".4"/>
+  <path d="M202 106 L210 102 L218 106 L210 110Z" fill="#2D6CDF" opacity=".4"/>
+</svg>

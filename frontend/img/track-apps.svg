@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 220" fill="none">
+  <!-- Background glow -->
+  <ellipse cx="140" cy="195" rx="100" ry="12" fill="#F26A1B" opacity=".06"/>
+
+  <!-- App window frame -->
+  <rect x="54" y="46" width="172" height="120" rx="12" fill="#F26A1B" fill-opacity=".06" stroke="#F26A1B" stroke-opacity=".2" stroke-width="1.5"/>
+  <rect x="54" y="46" width="172" height="26" rx="12" fill="#F26A1B" opacity=".1"/>
+  <rect x="54" y="60" width="172" height="12" fill="#F26A1B" opacity=".1"/>
+  <circle cx="70" cy="59" r="4" fill="#F26A1B" opacity=".4"/>
+  <circle cx="83" cy="59" r="4" fill="#F26A1B" opacity=".28"/>
+  <circle cx="96" cy="59" r="4" fill="#F26A1B" opacity=".18"/>
+
+  <!-- UI blocks inside window -->
+  <rect x="68" y="86" width="48" height="48" rx="8" fill="#F26A1B" opacity=".22"/>
+  <rect x="126" y="86" width="86" height="14" rx="4" fill="#F26A1B" opacity=".35"/>
+  <rect x="126" y="108" width="66" height="10" rx="4" fill="#F26A1B" opacity=".22"/>
+  <rect x="126" y="124" width="76" height="10" rx="4" fill="#F26A1B" opacity=".22"/>
+  <rect x="68" y="144" width="144" height="12" rx="4" fill="#F26A1B" opacity=".14"/>
+
+  <!-- Rocket (deploy) -->
+  <g transform="translate(196,150)">
+    <path d="M0 -26 C10 -18 12 -4 6 8 L-6 8 C-12 -4 -10 -18 0 -26 Z" fill="#F26A1B" opacity=".9"/>
+    <circle cx="0" cy="-10" r="4" fill="#FFFFFF"/>
+    <path d="M-6 6 L-12 16 L-4 12 Z" fill="#F26A1B" opacity=".6"/>
+    <path d="M6 6 L12 16 L4 12 Z" fill="#F26A1B" opacity=".6"/>
+    <path d="M-3 10 L0 22 L3 10 Z" fill="#F26A1B" opacity=".45"/>
+  </g>
+
+  <!-- Sparkle -->
+  <path d="M70 176 L73 184 L70 192 L67 184Z" fill="#F26A1B" opacity=".4"/>
+  <path d="M64 184 L70 181 L76 184 L70 187Z" fill="#F26A1B" opacity=".4"/>
+</svg>

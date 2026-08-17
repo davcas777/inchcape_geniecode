@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 220" fill="none">
+  <!-- Background glow -->
+  <ellipse cx="140" cy="190" rx="100" ry="12" fill="#00A6A6" opacity=".06"/>
+
+  <!-- Pipeline tubes -->
+  <rect x="30" y="80" width="60" height="36" rx="6" fill="#00A6A6" opacity=".12"/>
+  <rect x="110" y="80" width="60" height="36" rx="6" fill="#00A6A6" opacity=".2"/>
+  <rect x="190" y="80" width="60" height="36" rx="6" fill="#00A6A6" opacity=".35"/>
+
+  <!-- Labels -->
+  <text x="60" y="103" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#00A6A6" opacity=".6">Bronze</text>
+  <text x="140" y="103" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#00A6A6" opacity=".8">Silver</text>
+  <text x="220" y="103" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#00A6A6">Gold</text>
+
+  <!-- Arrows -->
+  <path d="M94 98 L106 98" stroke="#00A6A6" stroke-width="2.5" stroke-linecap="round" opacity=".5"/>
+  <path d="M102 94 L108 98 L102 102" stroke="#00A6A6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".5"/>
+  <path d="M174 98 L186 98" stroke="#00A6A6" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
+  <path d="M182 94 L188 98 L182 102" stroke="#00A6A6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".7"/>
+
+  <!-- Main gear -->
+  <g transform="translate(140,148)">
+    <circle cx="0" cy="0" r="28" fill="#00A6A6" opacity=".1"/>
+    <circle cx="0" cy="0" r="20" stroke="#00A6A6" stroke-width="3" fill="none" opacity=".9"/>
+    <circle cx="0" cy="0" r="7" fill="#00A6A6" opacity=".9"/>
+    <!-- Gear teeth -->
+    <rect x="-4" y="-28" width="8" height="10" rx="2" fill="#00A6A6" opacity=".9"/>
+    <rect x="-4" y="18" width="8" height="10" rx="2" fill="#00A6A6" opacity=".9"/>
+    <rect x="-28" y="-4" width="10" height="8" rx="2" fill="#00A6A6" opacity=".9"/>
+    <rect x="18" y="-4" width="10" height="8" rx="2" fill="#00A6A6" opacity=".9"/>
+    <rect x="13" y="-23" width="8" height="10" rx="2" fill="#00A6A6" opacity=".9" transform="rotate(45 17 -18)"/>
+    <rect x="-21" y="13" width="8" height="10" rx="2" fill="#00A6A6" opacity=".9" transform="rotate(45 -17 18)"/>
+    <rect x="-21" y="-23" width="8" height="10" rx="2" fill="#00A6A6" opacity=".9" transform="rotate(-45 -17 -18)"/>
+    <rect x="13" y="13" width="8" height="10" rx="2" fill="#00A6A6" opacity=".9" transform="rotate(-45 17 18)"/>
+  </g>
+
+  <!-- Small gear -->
+  <g transform="translate(185,138)">
+    <circle cx="0" cy="0" r="12" stroke="#00A6A6" stroke-width="2" fill="none" opacity=".5"/>
+    <circle cx="0" cy="0" r="4" fill="#00A6A6" opacity=".5"/>
+    <rect x="-3" y="-16" width="6" height="7" rx="1.5" fill="#00A6A6" opacity=".5"/>
+    <rect x="-3" y="9" width="6" height="7" rx="1.5" fill="#00A6A6" opacity=".5"/>
+    <rect x="-16" y="-3" width="7" height="6" rx="1.5" fill="#00A6A6" opacity=".5"/>
+    <rect x="9" y="-3" width="7" height="6" rx="1.5" fill="#00A6A6" opacity=".5"/>
+  </g>
+
+  <!-- Sparkle -->
+  <path d="M80 140 L83 148 L80 156 L77 148Z" fill="#00A6A6" opacity=".4"/>
+  <path d="M74 148 L80 145 L86 148 L80 151Z" fill="#00A6A6" opacity=".4"/>
+</svg>

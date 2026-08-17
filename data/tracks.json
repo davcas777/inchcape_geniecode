@@ -1,0 +1,601 @@
+{
+  "tracks": [
+    {
+      "id": "data-engineering",
+      "title": "Data Engineering",
+      "subtitle": "Automatiza SAP y tus pipelines con Genie Code",
+      "description": "Usa Genie Code para automatizar la creación de tablas desde SAP (VBAK/VBAP/MARA/KNA1) con generación de campos técnicos, optimizar lecturas y escrituras en tablas grandes, gobernar con Unity Catalog, publicar Data Products y construir una app sobre datos de GBS — todo desde lenguaje natural.",
+      "icon": "⚙️",
+      "color": "#00A6A6",
+      "estimatedMinutes": 95,
+      "participantCount": 18,
+      "steps": [
+        {
+          "id": "eng-step-1",
+          "stepNumber": 1,
+          "title": "Explora el catálogo de Inchcape",
+          "description": "Abre un notebook nuevo y activa Genie Code (botón ✨ arriba a la derecha). Usa este prompt para conocer las tablas del workshop: la capa curada de negocio y la capa cruda estilo SAP.",
+          "prompt": "Muéstrame todas las tablas disponibles en el catálogo dacascan_ws1, en los schemas inchcape_gold e inchcape_sap_raw. Para cada tabla muéstrame:\n1. Nombre de la tabla y schema\n2. Número de filas\n3. Lista de columnas con sus tipos\n4. 3 filas de ejemplo\n\nFormatea todo como tablas legibles y agrupa por schema.",
+          "expectedOutput": "Celdas que muestran las 5 tablas de inchcape_gold (dim_dealership, fact_vehicle_sales, fact_service_orders, fact_parts_inventory, fact_daily_kpis) y las 4 tablas SAP de inchcape_sap_raw (vbak, vbap, mara, kna1) con sus schemas y datos de ejemplo.",
+          "tips": [
+            "Si Genie Code no responde, asegúrate de tener un cluster o SQL warehouse activo asignado al notebook.",
+            "Fíjate en la diferencia: inchcape_gold tiene nombres de negocio; inchcape_sap_raw tiene nombres técnicos SAP (VBELN, MATNR, KUNNR)."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "eng-step-2",
+          "stepNumber": 2,
+          "title": "Automatiza la creación de tablas desde SAP",
+          "description": "El caso #1 del equipo: convertir las tablas crudas de SAP en tablas curadas usables, con nombres de negocio y campos técnicos de auditoría generados automáticamente. Usa Genie Code para hacerlo desde lenguaje natural.",
+          "prompt": "Genera un notebook PySpark que automatice la creación de una tabla curada de documentos de venta a partir de las tablas crudas SAP en dacascan_ws1.inchcape_sap_raw:\n\n1. Une VBAK (cabecera) con VBAP (ítems) por MANDT + VBELN, y enriquece con KNA1 (cliente por KUNNR) y MARA (material por MATNR).\n\n2. Renombra las columnas técnicas SAP a nombres de negocio en español, por ejemplo:\n   - VBELN -> documento_venta\n   - POSNR -> posicion\n   - ERDAT -> fecha_creacion\n   - AUART -> tipo_documento\n   - NETWR (de VBAP) -> valor_neto_item_usd\n   - KUNNR -> id_cliente, NAME1 -> nombre_cliente, LAND1 -> pais_cliente\n   - MATNR -> id_material, MAKTX -> descripcion_material, MTART -> tipo_material\n   - VKORG -> organizacion_ventas, WERKS -> centro\n\n3. GENERA CAMPOS TÉCNICOS automáticamente en la tabla destino:\n   - surrogate_key: hash sha2 de documento_venta + posicion\n   - _ingested_at: current_timestamp()\n   - _source_system: literal 'SAP-ECC'\n   - _batch_date: current_date()\n   - _is_current: literal true\n\n4. Guarda como tabla Delta en dacascan_ws1.inchcape_silver.sap_sales_document_flat con TBLPROPERTIES ('layer'='silver', 'source'='sap'). Habilita Change Data Feed.\n\n5. Muestra el schema final y 5 filas de ejemplo.",
+          "expectedOutput": "Un notebook con JOINs entre las 4 tablas SAP, renombrado de columnas técnicas a nombres de negocio, generación de las 5 columnas técnicas (surrogate_key, _ingested_at, _source_system, _batch_date, _is_current), y un write Delta a inchcape_silver.sap_sales_document_flat. El resultado tiene ~60.000 filas (20k VBAK × 3 ítems).",
+          "tips": [
+            "Este es exactamente el patrón para industrializar la ingesta de SAP: describir el mapeo en lenguaje natural y dejar que Genie Code genere el JOIN + renombrado + campos técnicos.",
+            "Pídele a Genie Code que genere también un diccionario de datos del mapeo SAP -> negocio para documentar el linaje."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "eng-step-3",
+          "stepNumber": 3,
+          "title": "Optimiza lecturas y escrituras en tablas grandes",
+          "description": "El día a día del equipo: reducir tiempo de proceso y costo de cómputo en tablas grandes. Pide a Genie Code que aplique column pruning, Liquid Clustering, y transformaciones eficientes.",
+          "prompt": "Tengo una tabla grande dacascan_ws1.inchcape_gold.fact_vehicle_sales (~150k filas). Quiero optimizar cómo se lee y escribe. Genera el código PySpark y SQL para:\n\n1. LECTURA EFICIENTE: una consulta que seleccione SOLO las columnas dealer_id, sale_date, sale_price_usd, oem_brand (column pruning) y filtre las ventas de los últimos 90 días, en vez de leer toda la tabla con select *.\n\n2. LIQUID CLUSTERING: crea una versión optimizada dacascan_ws1.inchcape_gold.fact_vehicle_sales_optimized con CLUSTER BY (dealer_id, sale_date) y explica por qué esas columnas.\n\n3. TRANSFORMACIÓN EFICIENTE: un agregado de revenue mensual por región usando la tabla optimizada. Como la región vive en dim_dealership, únela con un broadcast join (dim_dealership es pequeña) y evita shuffles innecesarios. Excluye el dealer_id huérfano 99999.\n\n4. MANTENIMIENTO: los comandos OPTIMIZE y ANALYZE TABLE ... COMPUTE STATISTICS, y explica cuándo correr cada uno.\n\nExplica brevemente en comentarios el impacto de cada optimización en tiempo y costo.",
+          "expectedOutput": "Código con: (1) SELECT de columnas específicas con filtro de fecha, (2) CREATE TABLE ... CLUSTER BY, (3) agregado con broadcast(dim_dealership), (4) comandos OPTIMIZE y ANALYZE TABLE. Comentarios explicando column pruning, clustering y broadcast.",
+          "tips": [
+            "Liquid Clustering reemplaza al particionado manual y al Z-ORDER: no necesitas elegir columnas de partición ni recalcular.",
+            "El column pruning (leer solo las columnas necesarias) es la optimización más simple y de mayor impacto en formato Delta/Parquet."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "eng-step-4",
+          "stepNumber": 4,
+          "title": "Gobierna con Unity Catalog",
+          "description": "El equipo administra permisos, tags y discovery en Unity Catalog. Usa Genie Code para generar los comandos de gobierno como código, listos para versionar.",
+          "prompt": "Genera los comandos SQL de Unity Catalog para gobernar las tablas del schema dacascan_ws1.inchcape_gold:\n\n1. COMMENTS: agrega un COMMENT descriptivo a cada tabla y a las 5 columnas más importantes de fact_vehicle_sales (para que aparezcan en el buscador de Catalog).\n\n2. TAGS: aplica tags de gobierno con ALTER TABLE ... SET TAGS, por ejemplo domain='ventas', pii='none', certified='true', sap_sourced='true' según corresponda.\n\n3. GRANTS: otorga USE CATALOG y USE SCHEMA al grupo 'inchcape_analysts', y SELECT sobre las 5 tablas gold. Otorga además SELECT en inchcape_sap_raw solo al grupo 'inchcape_data_engineers'.\n\n4. DISCOVERY: una consulta a system.information_schema para listar todas las tablas de inchcape_gold con su comentario y tags, simulando cómo un usuario las descubriría.\n\n5. LINAJE: explica en markdown cómo verías el linaje de sap_sales_document_flat (del Step 2) hacia sus tablas SAP fuente en la pestaña Lineage de Catalog.",
+          "expectedOutput": "Bloques SQL con COMMENT ON, ALTER TABLE SET TAGS, GRANT statements, una consulta a information_schema, y una explicación del linaje. Todo ejecutable en Unity Catalog.",
+          "tips": [
+            "Los comentarios y tags no son cosméticos: alimentan el buscador de Unity Catalog y el contexto de Genie Spaces.",
+            "Gobernar como código (GRANTs y TAGs en un notebook o DAB) hace el gobierno reproducible entre ambientes dev/test/prod."
+          ],
+          "warningNote": "Si tu grupo o tabla no existe, el GRANT fallará. En el workshop puedes cambiar el nombre del grupo por uno real de tu workspace o solo revisar el código generado."
+        },
+        {
+          "id": "eng-step-5",
+          "stepNumber": 5,
+          "title": "Publica un Data Product (Data Mesh)",
+          "description": "El equipo será responsable de construir y mantener Data Products en el marketplace interno de Inchcape. Usa Genie Code para empaquetar un dataset curado como un producto de datos self-service y reutilizable.",
+          "prompt": "Quiero publicar un Data Product llamado 'ventas_por_concesionario' en el marketplace interno de Inchcape siguiendo principios de Data Mesh. Genera:\n\n1. La tabla del producto dacascan_ws1.inchcape_gold.dp_ventas_por_concesionario que agregue, por dealer_id y mes: revenue total USD, unidades vendidas, margen bruto %, y ticket promedio. Únela con dim_dealership para incluir país, ciudad, región y marca OEM.\n\n2. Los METADATOS del producto (como comentarios y tags de tabla): owner='data-engineering', dominio='ventas', SLA='diario 6am', descripción de negocio, y una lista de columnas documentadas.\n\n3. Un CONTRATO DE DATOS en markdown: qué garantiza el producto (frescura, granularidad, columnas estables), quién lo consume y cómo pedir acceso.\n\n4. El GRANT para que otros dominios lo consuman self-service (SELECT al grupo 'inchcape_analysts').\n\n5. Explica en 3 líneas cómo este patrón habilita reusabilidad y self-service sin que cada área tenga que reconstruir la lógica.",
+          "expectedOutput": "Una tabla dp_ventas_por_concesionario con agregados y join a dim_dealership, comentarios/tags de metadatos, un contrato de datos en markdown, un GRANT de consumo, y una explicación de reusabilidad self-service.",
+          "tips": [
+            "Un Data Product = tabla curada + metadatos + contrato + acceso gobernado. Genie Code genera las 4 piezas de una vez.",
+            "El prefijo dp_ (data product) es una convención simple para distinguir productos publicados de tablas intermedias."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "eng-step-6",
+          "stepNumber": 6,
+          "title": "Construye una app con Genie Code sobre GBS/SAP",
+          "description": "El caso hands-on que pidió el equipo: 'Build an app with Genie Code' conectado a los datos de SAP / Global Business Services. Usa Genie Code para generar el esqueleto de una Databricks App que exponga los datos curados.",
+          "prompt": "Genera el scaffold completo de una Databricks App (FastAPI + HTML) que exponga los datos de ventas SAP curados para el equipo de Global Business Services. La app debe:\n\n1. main.py con FastAPI que:\n   - Se conecte al SQL Warehouse usando databricks-sql-connector y las variables de entorno DATABRICKS_HOST, DATABRICKS_TOKEN, DATABRICKS_WAREHOUSE_ID\n   - Endpoint GET /api/ventas?pais=... que consulte dacascan_ws1.inchcape_gold.dp_ventas_por_concesionario filtrando por país\n   - Endpoint GET /api/kpis que devuelva los KPIs agregados de fact_daily_kpis\n\n2. Un frontend index.html mínimo que muestre una tabla de ventas por concesionario y un selector de país.\n\n3. El archivo app.yaml para desplegar en Databricks Apps (command uvicorn).\n\n4. Un requirements.txt con fastapi, uvicorn y databricks-sql-connector.\n\n5. Los pasos exactos de despliegue con la CLI: databricks apps create, sync y deploy, y qué permisos (SQL warehouse, SELECT en el schema) necesita el service principal de la app.",
+          "expectedOutput": "Un scaffold con main.py (FastAPI + 2 endpoints que consultan el warehouse), index.html, app.yaml, requirements.txt, y los comandos de la CLI de Databricks Apps con la nota de permisos del service principal.",
+          "tips": [
+            "Este es el patrón 'low-code' que buscan: describir la app en lenguaje natural y dejar que Genie Code genere backend + frontend + config de despliegue.",
+            "Los prerrequisitos de admin (habilitar Apps, permisos del service principal sobre el warehouse y el schema) son la parte que más olvidan los equipos — Genie Code los lista por ti."
+          ],
+          "warningNote": "Desplegar la app requiere que Databricks Apps esté habilitado y un SQL Warehouse activo. En el workshop generamos y revisamos el scaffold; el despliegue real puede ser un ejercicio de seguimiento."
+        },
+        {
+          "id": "eng-step-7",
+          "stepNumber": 7,
+          "title": "Reflexión: ¿dónde aplicas esto mañana?",
+          "description": "Último paso. Piensa en tu trabajo actual y escribe en una celda markdown las respuestas. Las compartirás con tu grupo en la actividad final.",
+          "prompt": null,
+          "expectedOutput": null,
+          "tips": [
+            "1. ¿Qué tabla o extracción de SAP podrías automatizar esta semana con el patrón del Step 2?",
+            "2. ¿Qué tabla grande de tu día a día se beneficiaría de column pruning + Liquid Clustering?",
+            "3. ¿Cuál sería el primer Data Product que publicarías en el marketplace interno de Inchcape?"
+          ],
+          "warningNote": null
+        }
+      ],
+      "faq": [
+        {
+          "question": "Genie Code no genera código, ¿qué hago?",
+          "answer": "Verifica que tienes un cluster o SQL warehouse activo asignado al notebook (esquina superior derecha). Si está iniciando, espera 1-2 minutos."
+        },
+        {
+          "question": "El código generado tiene errores al ejecutar",
+          "answer": "Copia el error completo y pégalo en Genie Code: 'Este código tiene un error: [error]. Corrígelo manteniendo la misma lógica.'"
+        },
+        {
+          "question": "No tengo acceso al catálogo dacascan_ws1",
+          "answer": "Avisa al facilitador (David). Necesitas USE CATALOG y SELECT sobre inchcape_gold e inchcape_sap_raw."
+        },
+        {
+          "question": "¿Puedo usar estos prompts con mis tablas reales de SAP?",
+          "answer": "Sí. Cambia dacascan_ws1.inchcape_sap_raw por tu schema real de extracción SAP y ajusta los nombres de columnas técnicas. El patrón de curación es el mismo."
+        }
+      ]
+    },
+    {
+      "id": "data-science",
+      "title": "Data Science & ML",
+      "subtitle": "Del experimento a producción con MLOps",
+      "description": "Usa Genie Code para prototipar casos de ML, entrenar y registrar modelos con MLflow siguiendo buenas prácticas, depurar en ambientes de prueba, industrializar con Databricks Asset Bundles (DAB) y DBConnect en VSCode, y publicar predicciones como Data Products.",
+      "icon": "🧠",
+      "color": "#6D4AFF",
+      "estimatedMinutes": 95,
+      "participantCount": 16,
+      "steps": [
+        {
+          "id": "ds-step-1",
+          "stepNumber": 1,
+          "title": "EDA y prototipado rápido con Genie Code",
+          "description": "El equipo necesita ver el proceso completo, desde el análisis inicial. Usa Genie Code para generar un EDA de las órdenes de servicio, el dataset que usaremos para modelar.",
+          "prompt": "Haz un análisis exploratorio completo de dacascan_ws1.inchcape_gold.fact_service_orders:\n\n1. Estadísticas descriptivas de todas las columnas numéricas (labor_hours, parts_cost_usd, labor_cost_usd, total_usd, csi_score)\n2. Distribución de total_usd con histograma (Plotly)\n3. total_usd promedio por service_type (bar chart)\n4. Serie temporal de órdenes por mes\n5. Heatmap de correlación entre variables numéricas\n6. Detecta valores anómalos: filas donde total_usd difiere de parts_cost_usd + labor_cost_usd, y filas donde csi_score está fuera del rango 1-5\n\nUsa color de acento teal #00A6A6 en los gráficos.",
+          "expectedOutput": "6 visualizaciones Plotly inline y un resumen. El EDA debe revelar ~200 filas donde total_usd no cuadra con parts+labor, y ~50 filas con csi_score=7 (fuera de rango) — defectos sembrados a propósito.",
+          "tips": [
+            "El EDA con Genie Code es reutilizable: cámbialo a cualquier tabla y obtienes un perfil completo en segundos.",
+            "Detectar anomalías desde el EDA evita entrenar un modelo sobre datos sucios."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "ds-step-2",
+          "stepNumber": 2,
+          "title": "Entrena y registra un modelo con MLflow",
+          "description": "Buenas prácticas de ML y MLOps para estandarizar el ciclo de vida de los modelos supervisados que el equipo desarrolla. Usa Genie Code para entrenar un modelo y registrarlo en Unity Catalog.",
+          "prompt": "Entrena un modelo supervisado para predecir el total_usd de una orden de servicio (regresión) usando dacascan_ws1.inchcape_gold.fact_service_orders:\n\n1. Prepara features: service_type (one-hot), labor_hours, parts_cost_usd, dealer_id, y day_of_week de order_date. Excluye las filas con csi_score fuera de rango y las de total inconsistente detectadas en el EDA.\n2. Split train/test 80/20.\n3. Configura MLflow experiment '/Shared/inchcape/service-cost-prediction'.\n4. Dentro de mlflow.start_run():\n   - Log params (modelo, hiperparámetros)\n   - Entrena un RandomForestRegressor o XGBRegressor\n   - Evalúa: RMSE, MAE, R²\n   - Log métricas y el modelo con signature e input_example\n   - Set tags: team='data-science', use_case='service-cost'\n5. Registra el modelo en Unity Catalog como dacascan_ws1.inchcape_gold.service_cost_model.\n6. Muestra un chart de predicho vs real y las feature importances.",
+          "expectedOutput": "Un MLflow run con params, métricas (R² esperado ~0.9+ porque total depende de labor+parts), modelo con signature, tags, y registro en Unity Catalog. Dos charts de calidad del modelo.",
+          "tips": [
+            "El patrón start_run -> log_params -> log_metrics -> log_model con signature es el estándar para TODO modelo en Databricks.",
+            "Registrar en Unity Catalog versiona y gobierna el modelo como cualquier otro dato — con permisos y linaje."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "ds-step-3",
+          "stepNumber": 3,
+          "title": "Depura y valida en un ambiente de prueba",
+          "description": "El equipo necesita asegurar la calidad del modelo antes de producción. Practica el ciclo 'error -> Genie Code -> fix' y la validación de un modelo candidato.",
+          "prompt": "Quiero validar el modelo del Step anterior antes de promoverlo a producción, en un flujo de ambiente de prueba. Genera un notebook que:\n\n1. Cargue la última versión del modelo registrado dacascan_ws1.inchcape_gold.service_cost_model.\n2. Ejecute PRUEBAS DE VALIDACIÓN automáticas (asserts) y reporte PASS/FAIL para cada una:\n   - El modelo predice sin error sobre un batch del test set\n   - R² en test >= 0.7 (umbral de calidad)\n   - No hay predicciones negativas de costo\n   - El tiempo de inferencia por 1000 filas < 5 segundos\n3. Genere un reporte de residuos: histograma de errores y las 10 predicciones con mayor error absoluto, para depurar dónde falla el modelo.\n4. Si todas las pruebas pasan, imprima 'LISTO PARA PROMOVER' y muestre el alias que le pondrías (@challenger).\n\nAdemás, aquí hay una función con un bug que rompe la validación — identifícalo y corrígelo:\n\n```python\ndef evaluate(model, X_test, y_test):\n    preds = model.predict(X_test)\n    rmse = mean_squared_error(y_test, preds, squared=True) ** 0.5\n    r2 = r2_score(preds, y_test)\n    return rmse, r2\n```",
+          "expectedOutput": "Un notebook con asserts de validación que imprimen PASS/FAIL, un análisis de residuos, y la corrección del bug (squared=True debería ser squared=False, y r2_score tiene los argumentos invertidos: debe ser r2_score(y_test, preds)).",
+          "tips": [
+            "Las pruebas de validación como asserts en un notebook son la forma más rápida de 'gate' un modelo antes de producción.",
+            "El patrón de pegar código con bug y pedir diagnóstico a Genie Code es el más útil del día a día."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "ds-step-4",
+          "stepNumber": 4,
+          "title": "Industrializa con Databricks Asset Bundles (DAB)",
+          "description": "El equipo despliega modelos y necesita estandarizar CI/CD entre ambientes. Usa Genie Code para generar un Databricks Asset Bundle que empaquete el entrenamiento como un job desplegable en dev/test/prod.",
+          "prompt": "Genera un Databricks Asset Bundle (DAB) completo para industrializar el entrenamiento del modelo de costo de servicio. Incluye:\n\n1. databricks.yml con:\n   - bundle name 'inchcape-service-cost'\n   - targets 'dev', 'test' y 'prod' con sus hosts/modos (dev = development, prod = production)\n   - variables para el catálogo y schema (para que dev use un schema distinto a prod)\n\n2. Un job definido en resources/ que:\n   - Ejecute el notebook de entrenamiento (Step 2)\n   - Corra sobre un job cluster serverless\n   - Tenga schedule diario y notificación por email en fallo\n\n3. Explica la estructura de carpetas del bundle y los comandos: databricks bundle validate, databricks bundle deploy -t dev, databricks bundle run.\n\n4. Explica en 3 líneas cómo DAB resuelve la gestión de configuración y CI/CD entre ambientes (mismo código, distinta config por target).",
+          "expectedOutput": "Un databricks.yml con bundle + 3 targets + variables, un recurso de job con schedule y notificaciones, la estructura de carpetas, y los comandos bundle validate/deploy/run con la explicación de multi-ambiente.",
+          "tips": [
+            "DAB es el estándar de Databricks para llevar código a producción como infraestructura versionada en Git.",
+            "Los 'targets' (dev/test/prod) con variables permiten un solo repo que despliega a distintos ambientes sin cambiar código."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "ds-step-5",
+          "stepNumber": 5,
+          "title": "Desarrolla local con DBConnect en VSCode",
+          "description": "El equipo quiere trabajar desde su IDE local conectado al workspace. Usa Genie Code para generar la configuración de Databricks Connect y un script que corre local pero ejecuta en el clúster.",
+          "prompt": "Quiero desarrollar desde VSCode en mi máquina, conectado al workspace de Databricks usando Databricks Connect (DBConnect). Genera:\n\n1. Los pasos de setup: instalar databricks-connect, configurar el profile con databricks configure, y las variables de entorno o el DatabricksSession con serverless.\n\n2. Un script Python local (main.py) que use DatabricksSession.builder para crear una SparkSession remota, lea dacascan_ws1.inchcape_gold.fact_service_orders, calcule el total_usd promedio por service_type, y lo imprima — ejecutándose en el clúster pero corriendo desde mi IDE.\n\n3. Un archivo requirements.txt y la configuración recomendada de la extensión de Databricks para VSCode.\n\n4. Explica qué se ejecuta localmente vs en el clúster, y por qué esto resuelve el problema de tener que correr procesos solo en local.",
+          "expectedOutput": "Pasos de instalación de databricks-connect, un main.py con DatabricksSession.builder.serverless() (o con cluster_id), lectura y agregado de la tabla, requirements.txt, y la explicación local-vs-clúster.",
+          "tips": [
+            "DBConnect te da el mejor de dos mundos: el editor, debugger y Git de tu IDE local, con el cómputo y los datos del workspace.",
+            "Combinado con DAB, DBConnect cierra el ciclo: desarrollas local, empaquetas con bundle, despliegas a prod."
+          ],
+          "warningNote": "DBConnect se configura en tu máquina local, no dentro del notebook del workshop. Aquí generamos y revisamos la configuración; probarla requiere instalarlo en tu VSCode."
+        },
+        {
+          "id": "ds-step-6",
+          "stepNumber": 6,
+          "title": "Publica predicciones como Data Product",
+          "description": "El equipo quiere publicar sus salidas de modelo (features, predicciones) como Data Products reutilizables para otras áreas. Usa Genie Code para materializar y gobernar una tabla de predicciones.",
+          "prompt": "Quiero publicar las predicciones del modelo de costo de servicio como un Data Product para que Finanzas y Operaciones las consuman. Genera:\n\n1. Un notebook de batch inference que cargue el modelo dacascan_ws1.inchcape_gold.service_cost_model, genere predicciones sobre fact_service_orders, y escriba una tabla dacascan_ws1.inchcape_gold.dp_prediccion_costo_servicio con: service_order_id, dealer_id, order_date, total_usd_real, total_usd_predicho, error_abs, model_version.\n\n2. Metadatos del Data Product: owner='data-science', dominio='aftersales', comentarios de tabla y columnas, tags certified='true'.\n\n3. El GRANT de SELECT al grupo 'inchcape_analysts'.\n\n4. Una explicación de cómo versionar el producto cuando cambie el modelo (columna model_version + _ingested_at).\n\n5. En 2 líneas: cómo esto habilita que otras áreas reutilicen las predicciones sin reentrenar nada.",
+          "expectedOutput": "Un notebook de batch inference que produce dp_prediccion_costo_servicio con predicciones y error, metadatos/tags, GRANT de consumo, y la explicación de versionado y reutilización.",
+          "tips": [
+            "Publicar predicciones como tabla gobernada (no como archivo suelto) las hace descubribles, versionadas y reutilizables.",
+            "El mismo patrón sirve para publicar features: una feature table registrada es un Data Product de ML."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "ds-step-7",
+          "stepNumber": 7,
+          "title": "Reflexión: ¿dónde aplicas esto mañana?",
+          "description": "Último paso. Piensa en tus proyectos actuales y cómo Genie Code + MLOps cambian tu flujo. Escribe tus respuestas para compartir con el grupo.",
+          "prompt": null,
+          "expectedOutput": null,
+          "tips": [
+            "1. ¿Qué modelo de tu backlog podrías prototipar más rápido con Genie Code esta semana?",
+            "2. ¿Qué parte del ciclo (EDA, features, training, validación, deploy) te consume más tiempo hoy?",
+            "3. ¿Qué salida de tus modelos (features o predicciones) publicarías primero como Data Product?"
+          ],
+          "warningNote": null
+        }
+      ],
+      "faq": [
+        {
+          "question": "MLflow no encuentra el experiment",
+          "answer": "El experiment se crea automáticamente con mlflow.set_experiment(). Verifica que el path comience con '/Shared/inchcape/' o tu carpeta de usuario."
+        },
+        {
+          "question": "El registro en Unity Catalog falla",
+          "answer": "Necesitas mlflow.set_registry_uri('databricks-uc') y permisos CREATE MODEL en el schema. Avisa al facilitador si falta el permiso."
+        },
+        {
+          "question": "¿Necesito instalar algo para DAB y DBConnect?",
+          "answer": "DAB viene con la CLI de Databricks. DBConnect requiere 'pip install databricks-connect' en tu entorno local. En el workshop revisamos la config; la instalación local es un ejercicio de seguimiento."
+        },
+        {
+          "question": "¿Puedo usar esto con mis datos de producción?",
+          "answer": "Sí. Cambia la tabla fuente y ajusta las features a tu caso. El patrón MLflow + DAB + Data Product es el mismo."
+        }
+      ]
+    },
+    {
+      "id": "apps-development",
+      "title": "Apps Development",
+      "subtitle": "De local a producción, seguro y gobernado",
+      "description": "Usa Genie Code para sacar tus proyectos de web scraping y modelos ML del entorno local a Databricks de forma segura, construir apps end-to-end, servir modelos detrás de una app, y estandarizar el despliegue con Databricks Asset Bundles (DAB) y DBConnect.",
+      "icon": "🚀",
+      "color": "#F26A1B",
+      "estimatedMinutes": 90,
+      "participantCount": 12,
+      "steps": [
+        {
+          "id": "apps-step-1",
+          "stepNumber": 1,
+          "title": "De local a Databricks: prerrequisitos seguros",
+          "description": "Hoy los proyectos no salen del entorno local por restricciones de seguridad y capacidad. Empieza por entender qué necesitas para mover un proceso a Databricks de forma segura. Usa Genie Code para generar un checklist ejecutable.",
+          "prompt": "Tengo un script Python que hoy corre solo en mi máquina local (hace web scraping y luego llama a un modelo ML). Quiero moverlo a Databricks de forma segura. Genera:\n\n1. Un CHECKLIST de prerrequisitos: compute (job cluster serverless vs all-purpose), permisos de Unity Catalog necesarios, dónde guardar credenciales (Databricks Secrets, NUNCA en el código), y acceso de red/egress para el scraping.\n\n2. El código para crear un secret scope y guardar una credencial: databricks secrets create-scope y put-secret, y cómo leerla en código con dbutils.secrets.get.\n\n3. Un ejemplo de cómo parametrizar el catálogo/schema destino para que el mismo código corra en dev y prod.\n\n4. Explica en 3 líneas por qué mover esto a Databricks resuelve las limitaciones de seguridad y capacidad de cómputo del entorno local.",
+          "expectedOutput": "Un checklist de prerrequisitos, comandos para crear secret scope + guardar/leer secrets, ejemplo de parametrización de destino, y la explicación de por qué Databricks resuelve seguridad y capacidad.",
+          "tips": [
+            "La regla de oro: credenciales SIEMPRE en Databricks Secrets, nunca hardcodeadas ni en Git.",
+            "Mover a compute serverless elimina la restricción de capacidad local y te da trazabilidad de cada ejecución."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "apps-step-2",
+          "stepNumber": 2,
+          "title": "Construye una app con Genie Code (end-to-end)",
+          "description": "El núcleo de lo que hace el equipo. Usa Genie Code para generar una Databricks App completa que exponga datos y permita interacción, incluyendo los prerrequisitos de admin.",
+          "prompt": "Genera una Databricks App completa (FastAPI + frontend) que sea un panel de operación de concesionarios para Inchcape. La app debe:\n\n1. main.py con FastAPI:\n   - Conexión al SQL Warehouse vía databricks-sql-connector con variables de entorno\n   - GET /api/dealers que liste concesionarios de dacascan_ws1.inchcape_gold.dim_dealership\n   - GET /api/dealer/{dealer_id}/kpis que devuelva ventas, órdenes de servicio y valor de inventario del concesionario\n\n2. Un frontend index.html que muestre una lista de concesionarios y, al hacer clic, sus KPIs.\n\n3. app.yaml y requirements.txt para Databricks Apps.\n\n4. Los PRERREQUISITOS DE ADMIN explícitos: habilitar Databricks Apps, crear el service principal de la app, otorgarle SELECT sobre inchcape_gold y CAN USE sobre el SQL Warehouse, y cómo hacer el binding del recurso warehouse en app.yaml.\n\n5. Los comandos de despliegue: databricks apps create, sync, deploy, y cómo obtener la URL pública de la app.",
+          "expectedOutput": "Un scaffold completo: main.py con endpoints al warehouse, index.html interactivo, app.yaml, requirements.txt, la lista de prerrequisitos de admin (Apps, service principal, permisos, resource binding) y los comandos de despliegue de la CLI.",
+          "tips": [
+            "El resource binding del warehouse debe registrarse con 'databricks apps update', no solo declararse en app.yaml, o las variables de entorno quedan vacías.",
+            "Ver el flujo completo (código + permisos + deploy) es lo que permite evaluar adoptar este enfoque low-code."
+          ],
+          "warningNote": "El despliegue real requiere Databricks Apps habilitado y un SQL Warehouse. En el workshop generamos y revisamos el scaffold completo; el deploy es un ejercicio guiado con el facilitador."
+        },
+        {
+          "id": "apps-step-3",
+          "stepNumber": 3,
+          "title": "Web scraping seguro y programado",
+          "description": "Un caso concreto del equipo: sacar un proceso de web scraping de local a un job seguro y trazable. Usa Genie Code para generar el job.",
+          "prompt": "Tengo un proceso de web scraping que hoy corre en local. Quiero convertirlo en un Databricks Job seguro y programado. Genera:\n\n1. Un notebook de scraping que:\n   - Lea la URL objetivo y credenciales desde Databricks Secrets (no hardcodeadas)\n   - Use requests + BeautifulSoup para extraer datos de ejemplo (usa un placeholder de URL)\n   - Escriba el resultado crudo en una tabla Delta dacascan_ws1.inchcape_bronze.scraped_market_prices con _ingested_at y _source_url\n   - Maneje errores y reintentos\n\n2. La definición del Job (vía Databricks SDK o YAML de DAB): schedule diario, job cluster serverless, timeout, y notificación en fallo.\n\n3. Explica qué controles de seguridad aplican: secrets, egress controlado, y trazabilidad de cada corrida en el historial del job.",
+          "expectedOutput": "Un notebook de scraping que lee secrets, extrae con requests+BeautifulSoup y escribe a Delta con columnas de auditoría, más la definición del job con schedule y notificaciones, y la explicación de controles de seguridad.",
+          "tips": [
+            "Un job programado deja rastro de cada ejecución (logs, duración, estado) — algo imposible de auditar cuando corre en un laptop.",
+            "El egress de red se controla a nivel de workspace/red; coordínalo con el equipo de plataforma."
+          ],
+          "warningNote": "Este step genera el scaffold del scraper; no ejecutamos scraping real en el workshop. La URL es un placeholder."
+        },
+        {
+          "id": "apps-step-4",
+          "stepNumber": 4,
+          "title": "Sirve un modelo ML detrás de la app",
+          "description": "Para que la app haga algo más que mostrar datos, conéctala a un modelo servido. Usa Genie Code para desplegar un endpoint de Model Serving y llamarlo desde la app.",
+          "prompt": "Quiero servir un modelo ML como endpoint REST y consumirlo desde mi Databricks App. Genera:\n\n1. El código para crear un Model Serving endpoint (serverless) usando el Databricks SDK, sirviendo el modelo dacascan_ws1.inchcape_gold.service_cost_model (si no existe, explica cómo apuntar a cualquier modelo registrado). Nómbralo 'inchcape-service-cost'.\n\n2. Una función Python query_endpoint(payload) que haga la llamada REST al endpoint con autenticación y devuelva la predicción.\n\n3. Un endpoint nuevo en la app (POST /api/predict) que reciba los datos de una orden de servicio y devuelva el costo predicho llamando al serving endpoint.\n\n4. Explica el estado del endpoint (Ready vs cold-start) y cómo manejarlo en la app.",
+          "expectedOutput": "Código que crea/consulta un serving endpoint serverless, una función query_endpoint, un endpoint POST /api/predict en la app, y la explicación de cold-start.",
+          "tips": [
+            "Model Serving serverless escala a cero y se prende con la demanda — ideal para apps con tráfico intermitente.",
+            "La app nunca carga el modelo en memoria: lo llama por REST, así se desacopla el ciclo de vida del modelo del de la app."
+          ],
+          "warningNote": "Model Serving serverless puede tardar 5-10 min en cold-start. Si no está listo en el workshop, revisamos el código y el facilitador muestra un endpoint pre-calentado."
+        },
+        {
+          "id": "apps-step-5",
+          "stepNumber": 5,
+          "title": "Empaqueta y despliega con DAB",
+          "description": "Estandariza el despliegue y la gestión de configuración con Databricks Asset Bundles, resolviendo el problema de ejecución local. Usa Genie Code para empaquetar la app y sus jobs.",
+          "prompt": "Genera un Databricks Asset Bundle (DAB) que empaquete y despliegue TODO el proyecto de apps: la Databricks App, el job de scraping y el serving endpoint. Incluye:\n\n1. databricks.yml con bundle name 'inchcape-apps', targets dev/prod, y variables para catálogo/schema por ambiente.\n2. Recursos: el app resource, el job de scraping (Step 3) con su schedule, y una referencia al serving endpoint.\n3. La estructura de carpetas del bundle.\n4. Los comandos: databricks bundle validate, deploy -t dev, deploy -t prod, y run.\n5. Explica cómo DAB resuelve la gestión de configuración y elimina la ejecución local: un solo repo Git, versionado, que despliega igual a dev y prod.",
+          "expectedOutput": "Un databricks.yml con app + job + endpoint como recursos, targets dev/prod con variables, estructura de carpetas, comandos bundle, y la explicación de config management y fin de la ejecución local.",
+          "tips": [
+            "DAB convierte 'corre esto en mi laptop' en 'está versionado en Git y se despliega con un comando' — trazabilidad total.",
+            "Un mismo bundle puede contener apps, jobs, pipelines y endpoints: todo el proyecto como una unidad desplegable."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "apps-step-6",
+          "stepNumber": 6,
+          "title": "Cierra el ciclo con DBConnect en VSCode",
+          "description": "Desarrolla y depura la app desde tu IDE local conectado al workspace. Usa Genie Code para generar la configuración de DBConnect.",
+          "prompt": "Quiero desarrollar y depurar mi app y mis scripts desde VSCode, conectado al workspace con Databricks Connect. Genera:\n\n1. Los pasos de setup de databricks-connect y la extensión de Databricks para VSCode.\n2. Un script local que use DatabricksSession para leer dacascan_ws1.inchcape_gold.dim_dealership y probar la lógica de datos de la app antes de desplegarla.\n3. Cómo debuggear con breakpoints en VSCode mientras el cómputo ocurre en el clúster.\n4. Explica el ciclo completo: desarrollo local con DBConnect -> empaquetado con DAB -> despliegue seguro a producción.",
+          "expectedOutput": "Pasos de setup de databricks-connect + extensión VSCode, un script con DatabricksSession que lee la tabla, cómo usar breakpoints, y el ciclo local->DAB->prod.",
+          "tips": [
+            "DBConnect + DAB es la combinación que elimina la ejecución local no gobernada: desarrollas cómodo, pero todo termina versionado y desplegado.",
+            "Puedes depurar con el debugger de VSCode aunque el Spark corra remoto en el clúster."
+          ],
+          "warningNote": "DBConnect se instala en tu máquina local. En el workshop revisamos la configuración; probarla es un ejercicio de seguimiento en tu VSCode."
+        },
+        {
+          "id": "apps-step-7",
+          "stepNumber": 7,
+          "title": "Reflexión: ¿dónde aplicas esto mañana?",
+          "description": "Último paso. Piensa en tus proyectos que hoy viven en local. Escribe tus respuestas para compartir con el grupo.",
+          "prompt": null,
+          "expectedOutput": null,
+          "tips": [
+            "1. ¿Qué proyecto que hoy corre en local moverías primero a Databricks con el patrón seguro del Step 1-3?",
+            "2. ¿Qué app interna construirías con Genie Code para reemplazar un proceso manual?",
+            "3. ¿Cómo estandarizarías el despliegue de tu equipo con DAB para evitar la ejecución local?"
+          ],
+          "warningNote": null
+        }
+      ],
+      "faq": [
+        {
+          "question": "¿Qué es una Databricks App?",
+          "answer": "Una app web (FastAPI/Flask/Streamlit/Node) que corre gobernada dentro de Databricks, con su propio service principal y acceso a datos vía Unity Catalog. Se despliega con la CLI."
+        },
+        {
+          "question": "Las variables de entorno del warehouse llegan vacías a mi app",
+          "answer": "El resource binding debe registrarse con 'databricks apps update' (no solo declararse en app.yaml). Revisa el Step 2."
+        },
+        {
+          "question": "¿Necesito exponer credenciales para el scraping?",
+          "answer": "No. Usa Databricks Secrets (secret scope + get-secret). Nunca pongas credenciales en el código ni en Git."
+        },
+        {
+          "question": "Model Serving tarda en responder",
+          "answer": "Es cold-start de serverless (5-10 min la primera vez). Luego responde en milisegundos. Maneja el estado 'Ready' en la app."
+        }
+      ]
+    },
+    {
+      "id": "pmo-ba",
+      "title": "PMO & BA",
+      "subtitle": "Confía en los números antes del reporte",
+      "description": "Usa Genie Code para validar datos y consistencia antes de cada reporte, construir dashboards de seguimiento con AI/BI, preguntar en lenguaje natural con Genie (Genie ONE), automatizar tareas repetitivas con agentes, y crear apps internas de seguimiento sin desarrollo tradicional.",
+      "icon": "📋",
+      "color": "#2D6CDF",
+      "estimatedMinutes": 85,
+      "participantCount": 14,
+      "steps": [
+        {
+          "id": "pmo-step-1",
+          "stepNumber": 1,
+          "title": "Valida datos y consistencia con Genie Code",
+          "description": "El caso #1 de PMO: antes de cada reporte o steering committee, confirmar que los números cuadran. Hoy es un cruce manual entre hojas de cálculo. Usa Genie Code para automatizar la validación.",
+          "prompt": "Antes de un reporte de comité, necesito validar la consistencia de los datos de servicio y ventas. Genera un notebook de validación que revise dacascan_ws1.inchcape_gold y reporte cada hallazgo como una tabla con: check, tabla, filas_afectadas, severidad, detalle. Incluye estos checks:\n\n1. CONSISTENCIA: en fact_service_orders, filas donde total_usd != parts_cost_usd + labor_cost_usd (redondeando a 2 decimales). Esperamos encontrar varias.\n2. RANGO: en fact_service_orders, csi_score fuera del rango válido 1-5.\n3. NULOS: en dim_dealership, cuántos dealers tienen region NULL.\n4. DUPLICADOS: dealer_id duplicados en dim_dealership y sale_id duplicados en fact_vehicle_sales.\n5. HUÉRFANOS: dealer_id en fact_vehicle_sales que no existen en dim_dealership.\n6. VALORES INVÁLIDOS: sale_price_usd <= 0 en fact_vehicle_sales.\n\nAl final, muestra un resumen consolidado: total de checks, cuántos PASS y cuántos FAIL, y una recomendación de si los datos están listos para reportar.",
+          "expectedOutput": "Un notebook que ejecuta 6 checks y produce una tabla de hallazgos + resumen. Debe encontrar: ~200 inconsistencias total vs parts+labor, ~50 csi_score fuera de rango, ~14 regiones NULL, 5 dealer_id y 40 sale_id duplicados, ~60 ventas huérfanas, y algunos precios <=0.",
+          "tips": [
+            "Este es el reemplazo directo del cruce manual entre hojas de cálculo: describe las reglas, Genie Code genera el chequeo.",
+            "Convierte esto en un notebook programado y tendrás un 'semáforo' de calidad antes de cada reporte."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "pmo-step-2",
+          "stepNumber": 2,
+          "title": "Construye un dashboard de seguimiento (AI/BI)",
+          "description": "PMO quiere construir y consultar dashboards de seguimiento de proyectos y KPIs sin depender de otros. Usa Genie Code para generar las consultas de un dashboard AI/BI.",
+          "prompt": "Genera las consultas SQL para un dashboard de seguimiento ejecutivo de Inchcape con estos paneles, usando dacascan_ws1.inchcape_gold:\n\n1. KPI Cards: revenue de vehículos total, revenue de servicio, unidades vendidas y CSI promedio — últimos 30 días vs 30 días previos (mostrar delta %).\n2. Line chart: revenue mensual por país, últimos 12 meses (usa fact_daily_kpis).\n3. Bar chart: top 10 concesionarios por revenue de ventas (join fact_vehicle_sales con dim_dealership).\n4. Table: resumen por país — revenue vehículos, revenue servicio, unidades, margen bruto %, CSI promedio.\n5. Pie chart: distribución de órdenes de servicio por service_type.\n\nPara cada panel genera la consulta SQL completa, con alias claros y lista para pegar en un dashboard AI/BI de Databricks.",
+          "expectedOutput": "5 consultas SQL listas para un dashboard AI/BI (Lakeview), cada una con joins y agregados correctos sobre las tablas gold, con alias descriptivos.",
+          "tips": [
+            "En Databricks puedes crear un dashboard AI/BI y pegar estas consultas directamente, o describir el dashboard a Genie y que lo arme.",
+            "Un dashboard AI/BI permite que cualquiera haga preguntas en lenguaje natural sobre esos datos, no solo ver los gráficos."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "pmo-step-3",
+          "stepNumber": 3,
+          "title": "Pregunta en lenguaje natural con Genie (Genie ONE)",
+          "description": "Genie como 'compañero de trabajo' conectado a los datos: preguntar información de proyectos y KPIs en lenguaje natural, sin saber SQL. Usa Genie Code para preparar la configuración de un Genie Space.",
+          "prompt": "Genera la configuración completa de un Genie Space de 'Seguimiento Ejecutivo Inchcape' para que PMO pregunte en lenguaje natural sin SQL. Incluye:\n\n1. INSTRUCCIONES del Space (en español): contexto de negocio (distribución automotriz Inchcape en LatAm), qué contiene cada tabla de dacascan_ws1.inchcape_gold, reglas (responder en español, formatear moneda en USD, mostrar CSI con 1 decimal, porcentajes con signo %).\n2. Las tablas que el Space debe incluir: dim_dealership, fact_vehicle_sales, fact_service_orders, fact_daily_kpis.\n3. 6 PREGUNTAS DE EJEMPLO (sample questions) que un usuario de PMO haría, como '¿Cuál fue el revenue de Colombia el último trimestre?' o '¿Qué concesionario tiene el CSI más bajo?'.\n4. Instrucciones semánticas útiles: sinónimos (revenue = ingresos = ventas), y qué NO puede responder (datos de nómina, márgenes por SKU).\n5. Los GRANT necesarios para que el grupo 'inchcape_pmo' use el Space.",
+          "expectedOutput": "Instrucciones del Genie Space, lista de tablas, 6 sample questions, instrucciones semánticas (sinónimos + límites), y los GRANT statements. Listo para pegar al crear el Space.",
+          "tips": [
+            "Genie ONE = un Genie Space bien instruido conectado a tus datos: es el 'compañero de trabajo' que responde en lenguaje natural.",
+            "Cuanto mejor el contexto de negocio (no solo técnico), mejores y más confiables las respuestas."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "pmo-step-4",
+          "stepNumber": 4,
+          "title": "Automatiza tareas con Genie AGENTS",
+          "description": "Cualquiera puede construir agentes para automatizar trabajo. Úsalos para tareas repetitivas de PMO como generar reportes de estado o alertas. Usa Genie Code para diseñar el agente.",
+          "prompt": "Quiero un agente que automatice la generación del reporte de estado semanal de PMO. Genera:\n\n1. Una función Python generar_reporte_estado() que:\n   - Consulte dacascan_ws1.inchcape_gold.fact_daily_kpis de la última semana\n   - Calcule revenue total, unidades, CSI promedio y variación vs la semana anterior por país\n   - Use el Foundation Model API (endpoint 'databricks-claude-sonnet-4') para redactar un resumen ejecutivo en español de 5 líneas con los hallazgos\n   - Devuelva el reporte en markdown\n\n2. Una función alertas() que revise reglas de negocio (ej. CSI de un país < 4.0, o caída de revenue > 15% semana a semana) y devuelva una lista de alertas.\n\n3. Explica cómo empaquetar esto como un agente programado (job diario/semanal) que envíe el reporte por email o Slack.\n\n4. Explica en 2 líneas la diferencia entre este agente 'de tarea' y un Genie Space 'de pregunta-respuesta'.",
+          "expectedOutput": "Una función que consulta KPIs y usa el FMAPI para redactar un resumen ejecutivo, una función de alertas por reglas, y la explicación de cómo programarlo como agente y la diferencia con un Genie Space.",
+          "tips": [
+            "Un agente automatiza una TAREA de principio a fin (generar y enviar el reporte); un Genie Space responde PREGUNTAS bajo demanda.",
+            "Empieza automatizando el reporte más repetitivo y de menor criterio: el de estado semanal es el candidato ideal."
+          ],
+          "warningNote": "Este step usa el Foundation Model API. Si no está habilitado, el facilitador muestra el resultado esperado; el resto del código funciona igual."
+        },
+        {
+          "id": "pmo-step-5",
+          "stepNumber": 5,
+          "title": "Crea una app interna sin desarrollo tradicional",
+          "description": "PMO quiere apps internas (seguimiento de solicitudes, aprobaciones, estado de proyectos) sin desarrollo tradicional. Usa Genie Code para generar el scaffold de una app simple.",
+          "prompt": "Genera una Databricks App simple de seguimiento de solicitudes de proyecto para PMO, sin necesidad de un desarrollador dedicado. La app debe:\n\n1. main.py (FastAPI) con:\n   - Una tabla dacascan_ws1.inchcape_gold.pmo_solicitudes (id, titulo, area, estado, prioridad, fecha_creacion, responsable) — genera el CREATE TABLE y unos INSERT de ejemplo\n   - GET /api/solicitudes con filtro por estado\n   - POST /api/solicitudes para crear una nueva solicitud\n   - PATCH /api/solicitudes/{id} para cambiar el estado (ej. Pendiente -> Aprobada)\n\n2. Un frontend index.html con una tabla de solicitudes, un formulario para crear, y botones para cambiar estado.\n\n3. app.yaml y requirements.txt.\n\n4. Los pasos de despliegue y los permisos necesarios (el service principal necesita SELECT/MODIFY sobre la tabla).",
+          "expectedOutput": "Un scaffold de app CRUD: CREATE TABLE + inserts de ejemplo, endpoints GET/POST/PATCH, un index.html con tabla + formulario, app.yaml, requirements.txt, y los pasos de despliegue con permisos.",
+          "tips": [
+            "Esta es la promesa low-code: describir la app de seguimiento en lenguaje natural y obtener backend + frontend + despliegue.",
+            "Empieza por el flujo más simple (crear solicitud, cambiar estado) y expande después."
+          ],
+          "warningNote": "El despliegue requiere Databricks Apps habilitado. En el workshop generamos y revisamos el scaffold; el deploy es guiado por el facilitador."
+        },
+        {
+          "id": "pmo-step-6",
+          "stepNumber": 6,
+          "title": "Reflexión: ¿dónde aplicas esto mañana?",
+          "description": "Último paso. Piensa en tus reportes y tareas repetitivas. Escribe tus respuestas para compartir con el grupo.",
+          "prompt": null,
+          "expectedOutput": null,
+          "tips": [
+            "1. ¿Qué cruce manual entre hojas de cálculo reemplazarías con el validador del Step 1 esta semana?",
+            "2. ¿Qué reporte repetitivo automatizarías primero con un agente?",
+            "3. ¿Qué app de seguimiento (solicitudes, aprobaciones, estado) te ahorraría más tiempo?"
+          ],
+          "warningNote": null
+        }
+      ],
+      "faq": [
+        {
+          "question": "No sé SQL, ¿puedo hacer estos ejercicios?",
+          "answer": "Sí. La idea de Genie Code y Genie ONE es que describas lo que quieres en español y la herramienta genere el SQL. Copia los prompts tal cual."
+        },
+        {
+          "question": "¿Qué diferencia hay entre Genie ONE y un dashboard AI/BI?",
+          "answer": "El dashboard muestra gráficos predefinidos; Genie ONE (un Genie Space) responde cualquier pregunta en lenguaje natural sobre esos mismos datos."
+        },
+        {
+          "question": "¿Un agente puede enviar el reporte solo?",
+          "answer": "Sí, empaquetándolo como un job programado que al terminar envía el resultado por email o Slack. El Step 4 lo explica."
+        },
+        {
+          "question": "¿Necesito permisos especiales?",
+          "answer": "Necesitas SELECT sobre inchcape_gold. Para las apps, el service principal necesita permisos sobre las tablas. Avisa al facilitador."
+        }
+      ]
+    },
+    {
+      "id": "powerbi-bi",
+      "title": "Power BI / BI Developers",
+      "subtitle": "De reportero de datos a constructor de herramientas",
+      "description": "Usa Genie Code para acelerar los reportes recurrentes: genera SQL desde lenguaje natural, valida los campos de tus reportes de mercado, construye dashboards AI/BI, entiende cómo se gobiernan tus fuentes en Unity Catalog, y da el salto a construir apps ligeras y agentes.",
+      "icon": "📊",
+      "color": "#1FA971",
+      "estimatedMinutes": 90,
+      "participantCount": 13,
+      "steps": [
+        {
+          "id": "bi-step-1",
+          "stepNumber": 1,
+          "title": "De lenguaje natural a SQL para reportes",
+          "description": "El equipo entrega reportes de mercado recurrentes. Usa Genie Code para generar el SQL de esos reportes desde una descripción en español, acelerando el trabajo repetitivo.",
+          "prompt": "Escribe una consulta SQL para un reporte de mercado mensual usando dacascan_ws1.inchcape_gold.fact_vehicle_sales y dim_dealership. El reporte debe mostrar, por país y marca OEM del último trimestre:\n- unidades vendidas\n- revenue total en USD\n- ticket promedio\n- margen bruto % (usando sale_price_usd y vehicle_cost_usd)\n- participación de mercado % de cada marca dentro de su país (window function)\n\nOrdena por país y luego revenue descendente. Excluye las ventas con dealer_id huérfano (99999) y precios <= 0.",
+          "expectedOutput": "Una consulta SQL con JOIN, GROUP BY país + marca, agregados, window function para participación %, y filtros de calidad. Los resultados excluyen huérfanos y precios inválidos.",
+          "tips": [
+            "Mientras más específico seas con columnas, filtros y formato, mejor el SQL generado.",
+            "Guarda tus reportes recurrentes como prompts reutilizables: cada mes solo cambias el período."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "bi-step-2",
+          "stepNumber": 2,
+          "title": "Valida los campos de tus reportes de mercado",
+          "description": "Antes de entregar un reporte, valida que los campos que lo alimentan son correctos. Usa Genie Code para chequear la calidad de los datos fuente.",
+          "prompt": "Antes de publicar mi reporte de mercado, quiero validar los campos que lo alimentan. Genera consultas SQL de validación sobre dacascan_ws1.inchcape_gold.fact_vehicle_sales y dim_dealership que reporten:\n\n1. Ventas con dealer_id que no existe en dim_dealership (huérfanas) — cuenta y muestra ejemplos.\n2. Ventas con sale_price_usd <= 0 o NULL.\n3. Concesionarios con region NULL (afectan el agrupamiento por región del reporte).\n4. sale_id duplicados (inflan los conteos del reporte).\n5. Ventas donde vehicle_cost_usd > sale_price_usd (margen negativo — posible error de carga).\n6. Un resumen: por cada check, filas afectadas y si el reporte es CONFIABLE o requiere limpieza.\n\nFormatea cada resultado como una tabla clara.",
+          "expectedOutput": "Consultas de validación que detectan ~60 ventas huérfanas, precios <=0/NULL, ~14 regiones NULL, 40 sale_id duplicados, y márgenes negativos si existen, con un resumen de confiabilidad.",
+          "tips": [
+            "Validar los campos fuente ANTES de construir el reporte evita re-trabajos y reportes con números mal.",
+            "Este es el mismo patrón de validación que usa PMO — compártanlo entre equipos."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "bi-step-3",
+          "stepNumber": 3,
+          "title": "Construye un dashboard AI/BI",
+          "description": "Convierte tu reporte recurrente en un dashboard AI/BI interactivo. Usa Genie Code para generar las consultas de los paneles.",
+          "prompt": "Genera las consultas SQL para un dashboard de mercado automotriz Inchcape con estos paneles, usando dacascan_ws1.inchcape_gold:\n\n1. KPI Cards: unidades vendidas, revenue total USD, ticket promedio, margen bruto % — trimestre actual vs anterior.\n2. Line chart: unidades vendidas por mes, por segmento (SUV, Sedán, Pickup, EV...), últimos 12 meses.\n3. Stacked bar: revenue por país y marca OEM.\n4. Map / table: revenue por ciudad (usa dim_dealership.city).\n5. Table: ranking de concesionarios por unidades y margen.\n\nCada consulta lista para pegar en un dashboard AI/BI de Databricks, con alias claros. Excluye datos con defectos (huérfanos, precios <=0).",
+          "expectedOutput": "5 consultas SQL para un dashboard AI/BI, con KPIs comparativos, series por segmento, revenue por país/marca/ciudad y ranking de concesionarios, todas filtrando los defectos.",
+          "tips": [
+            "Un dashboard AI/BI le suma a tu reporte tradicional la capacidad de preguntar en lenguaje natural encima de los datos.",
+            "Puedes describir el dashboard completo a Genie y que lo construya, o pegar estas consultas panel por panel."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "bi-step-4",
+          "stepNumber": 4,
+          "title": "Entiende el gobierno en Unity Catalog",
+          "description": "Para entregar reportes confiables necesitas saber cómo se gobiernan y descubren las fuentes que consumes. Usa Genie Code para explorar gobierno, linaje y descubrimiento en Unity Catalog.",
+          "prompt": "Quiero entender cómo están gobernadas las fuentes que consumo para mis reportes. Genera consultas y explicaciones para:\n\n1. DESCUBRIMIENTO: consulta a system.information_schema.tables y columns para listar todas las tablas de dacascan_ws1.inchcape_gold con su comentario, y las columnas de fact_vehicle_sales con sus tipos y comentarios.\n2. TAGS: consulta cómo ver los tags de gobierno de una tabla (ej. certified, domain) desde information_schema.\n3. PERMISOS: el comando SHOW GRANTS ON TABLE para ver quién puede leer una tabla.\n4. LINAJE: explica en markdown cómo, desde la pestaña Lineage de Unity Catalog, verificarías de qué fuente viene una tabla antes de confiar en ella para un reporte.\n5. Explica en 3 líneas por qué consumir tablas 'certified' y con linaje claro hace tus reportes más confiables.",
+          "expectedOutput": "Consultas a information_schema para descubrimiento y tags, SHOW GRANTS, una explicación del linaje en la UI de Catalog, y por qué el gobierno da confiabilidad a los reportes.",
+          "tips": [
+            "Como consumidor de datos, tu mejor aliado es el tag 'certified' y la pestaña Lineage: te dicen si una fuente es confiable.",
+            "Si una tabla no tiene comentarios ni linaje claro, pídele a Data Engineering que la documente antes de basar un reporte en ella."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "bi-step-5",
+          "stepNumber": 5,
+          "title": "Construye una app ligera con Genie Code",
+          "description": "Da el salto de 'reportero de datos' a 'constructor de herramientas': una app donde un usuario de negocio filtra, valida o corrige datos antes de que entren al reporte final. Usa Genie Code para generar el scaffold.",
+          "prompt": "Genera una Databricks App ligera que permita a un usuario de negocio revisar y validar los datos de ventas antes de que entren al reporte de mercado final. La app debe:\n\n1. main.py (FastAPI) con:\n   - GET /api/ventas-sospechosas que devuelva de dacascan_ws1.inchcape_gold.fact_vehicle_sales las filas con posibles errores (dealer_id huérfano, precio <=0, margen negativo)\n   - POST /api/marcar-revisado para que el usuario marque una fila como revisada/corregida (escribe en una tabla dacascan_ws1.inchcape_gold.ventas_revisadas)\n\n2. Un frontend index.html con una tabla de ventas sospechosas, un filtro por país, y un botón 'Marcar como revisado' por fila.\n\n3. app.yaml, requirements.txt y los pasos de despliegue con permisos.\n\nEste es el ejemplo de pasar de reportar datos a construir una herramienta que mejora la calidad antes del reporte.",
+          "expectedOutput": "Un scaffold de app: endpoint que lista ventas sospechosas, endpoint que persiste la revisión, index.html con tabla + filtro + botón, app.yaml, requirements.txt y pasos de despliegue.",
+          "tips": [
+            "Esta app convierte la validación (Step 2) en una herramienta que el negocio usa self-service — ese es el salto de valor del equipo.",
+            "Empieza mostrando solo lectura (ventas sospechosas) y agrega la escritura (marcar revisado) después."
+          ],
+          "warningNote": "El despliegue requiere Databricks Apps habilitado. En el workshop generamos y revisamos el scaffold; el deploy es guiado por el facilitador."
+        },
+        {
+          "id": "bi-step-6",
+          "stepNumber": 6,
+          "title": "Automatiza con Genie AGENTS",
+          "description": "Aprende a construir agentes para automatizar las tareas repetitivas del equipo, como preparar y distribuir el reporte de mercado. Usa Genie Code para diseñar el agente.",
+          "prompt": "Quiero automatizar la preparación del reporte de mercado semanal con un agente. Genera:\n\n1. Una función preparar_reporte_mercado() que:\n   - Ejecute las consultas del reporte (unidades, revenue, margen por país y marca de la última semana)\n   - Use el Foundation Model API (endpoint 'databricks-claude-sonnet-4') para redactar un comentario ejecutivo en español que explique las 3 tendencias más relevantes\n   - Devuelva el reporte (tablas + comentario) en markdown\n\n2. Una función de control de calidad que, antes de enviar, corra las validaciones del Step 2 y bloquee el envío si hay errores graves (huérfanos o duplicados por encima de un umbral).\n\n3. Explica cómo programar esto como un job semanal que genere el reporte y lo envíe por email/Slack solo si pasó la validación.\n\n4. En 2 líneas: qué tareas repetitivas de un BI Developer son buenas candidatas para un agente.",
+          "expectedOutput": "Una función que arma el reporte y usa el FMAPI para el comentario ejecutivo, una función de QA que bloquea el envío si hay errores, y la explicación de cómo programarlo como agente semanal.",
+          "tips": [
+            "El agente no solo genera el reporte: valida antes de enviar, evitando distribuir números malos.",
+            "Buenas candidatas a automatizar: reportes recurrentes, refrescos de datos, alertas de umbral y controles de calidad."
+          ],
+          "warningNote": "Este step usa el Foundation Model API. Si no está habilitado, el facilitador muestra el resultado esperado; el resto del código funciona igual."
+        },
+        {
+          "id": "bi-step-7",
+          "stepNumber": 7,
+          "title": "Reflexión: ¿dónde aplicas esto mañana?",
+          "description": "Último paso. Piensa en tus reportes recurrentes y tareas repetitivas. Escribe tus respuestas para compartir con el grupo.",
+          "prompt": null,
+          "expectedOutput": null,
+          "tips": [
+            "1. ¿Qué reporte de mercado recurrente acelerarías generando su SQL con Genie Code?",
+            "2. ¿Qué validación de campos harías antes de tu próximo reporte para evitar re-trabajos?",
+            "3. ¿Qué herramienta ligera (app) construirías para dejar de ser solo 'reportero de datos'?"
+          ],
+          "warningNote": null
+        }
+      ],
+      "faq": [
+        {
+          "question": "¿Puedo ejecutar SQL directamente en un notebook?",
+          "answer": "Sí. Crea una celda y escribe %sql al inicio, o crea un notebook de tipo SQL. También puedes usar un SQL Editor con un warehouse."
+        },
+        {
+          "question": "El SQL generado tiene errores de sintaxis",
+          "answer": "Copia el error y pégalo en Genie Code: 'Esta consulta tiene un error: [error]. Corrígela para Databricks SQL.'"
+        },
+        {
+          "question": "¿Cómo creo un dashboard AI/BI?",
+          "answer": "Barra lateral → New → Dashboard. Pega las consultas del Step 3 en datasets y crea los gráficos, o describe el dashboard a Genie."
+        },
+        {
+          "question": "¿Puedo usar estas queries con mis reportes reales?",
+          "answer": "Sí. Cambia dacascan_ws1.inchcape_gold por tu catálogo y schema reales. Los patrones SQL son los mismos."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 220" fill="none">
+  <!-- Background glow -->
+  <ellipse cx="140" cy="195" rx="100" ry="12" fill="#1FA971" opacity=".06"/>
+
+  <!-- Dashboard frame -->
+  <rect x="50" y="40" width="180" height="130" rx="10" fill="#1FA971" fill-opacity=".06" stroke="#1FA971" stroke-opacity=".15" stroke-width="1.5"/>
+
+  <!-- Title bar -->
+  <rect x="50" y="40" width="180" height="24" rx="10" fill="#1FA971" opacity=".1"/>
+  <rect x="50" y="54" width="180" height="10" fill="#1FA971" opacity=".1"/>
+  <circle cx="66" cy="52" r="4" fill="#1FA971" opacity=".3"/>
+  <circle cx="78" cy="52" r="4" fill="#1FA971" opacity=".2"/>
+  <circle cx="90" cy="52" r="4" fill="#1FA971" opacity=".15"/>
+
+  <!-- Bar chart -->
+  <rect x="70" y="120" width="16" height="36" rx="3" fill="#1FA971" opacity=".25"/>
+  <rect x="92" y="105" width="16" height="51" rx="3" fill="#1FA971" opacity=".4"/>
+  <rect x="114" y="85" width="16" height="71" rx="3" fill="#1FA971" opacity=".6"/>
+  <rect x="136" y="95" width="16" height="61" rx="3" fill="#1FA971" opacity=".8"/>
+  <rect x="158" y="75" width="16" height="81" rx="3" fill="#1FA971"/>
+
+  <!-- Trend line -->
+  <polyline points="78,118 100,100 122,82 144,90 166,72" stroke="#5FD3A3" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="78" cy="118" r="3" fill="#5FD3A3"/>
+  <circle cx="100" cy="100" r="3" fill="#5FD3A3"/>
+  <circle cx="122" cy="82" r="3" fill="#5FD3A3"/>
+  <circle cx="144" cy="90" r="3" fill="#5FD3A3"/>
+  <circle cx="166" cy="72" r="3" fill="#5FD3A3"/>
+
+  <!-- KPI cards -->
+  <rect x="186" y="72" width="34" height="22" rx="4" fill="#1FA971" fill-opacity=".08" stroke="#1FA971" stroke-opacity=".15" stroke-width="1"/>
+  <rect x="186" y="100" width="34" height="22" rx="4" fill="#1FA971" fill-opacity=".08" stroke="#1FA971" stroke-opacity=".15" stroke-width="1"/>
+  <rect x="186" y="128" width="34" height="22" rx="4" fill="#1FA971" fill-opacity=".08" stroke="#1FA971" stroke-opacity=".15" stroke-width="1"/>
+  <text x="203" y="87" text-anchor="middle" font-family="system-ui" font-size="9" font-weight="700" fill="#1FA971" opacity=".6">+12%</text>
+  <text x="203" y="115" text-anchor="middle" font-family="system-ui" font-size="9" font-weight="700" fill="#1FA971" opacity=".6">$4.2M</text>
+  <text x="203" y="143" text-anchor="middle" font-family="system-ui" font-size="9" font-weight="700" fill="#1FA971" opacity=".6">1.2K</text>
+
+  <!-- Sparkle -->
+  <path d="M46 180 L49 188 L46 196 L43 188Z" fill="#1FA971" opacity=".3"/>
+  <path d="M40 188 L46 185 L52 188 L46 191Z" fill="#1FA971" opacity=".3"/>
+  <path d="M230 44 L232 49 L230 54 L228 49Z" fill="#5FD3A3" opacity=".5"/>
+  <path d="M226 49 L230 47 L234 49 L230 51Z" fill="#5FD3A3" opacity=".5"/>
+</svg>

@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Genie Code Workshop — Inchcape</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ic-ink: #14161A;
+      --ic-ink-soft: #2A2E37;
+      --ic-teal: #00A6A6;
+      --ic-teal-dark: #007C7B;
+      --ic-teal-soft: #E0F5F4;
+      --ic-text: #14161A;
+      --ic-text2: #5C6169;
+      --ic-text3: #9AA0A8;
+      --bg: #FFFFFF;
+      --bg-light: #F6F8F8;
+      --bg-card: #F6F8F8;
+      --bg-card-h: #EEF2F2;
+      --ok: #1F7A4D;
+      --border: #E7EAEA;
+      --border2: #D2D7D7;
+      --radius: 14px;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'DM Sans',system-ui,sans-serif; background:var(--bg); color:var(--ic-text); min-height:100vh; -webkit-font-smoothing:antialiased; }
+    ::selection { background:var(--ic-teal); color:#FFF; }
+
+    /* ===== HEADER ===== */
+    .topbar {
+      background:#FFF; border-bottom:1px solid var(--border);
+      position:sticky; top:0; z-index:200;
+    }
+    .topbar-inner {
+      max-width:1320px; margin:0 auto; padding:14px 32px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .topbar-left { display:flex; align-items:center; gap:24px; }
+    .topbar-logo { cursor:pointer; line-height:0; }
+    .topbar-logo img { height:32px; width:auto; }
+    .topbar-divider { width:1px; height:24px; background:var(--border); }
+    .topbar-title { font-size:14px; font-weight:600; color:var(--ic-text2); letter-spacing:.02em; }
+    .topbar-nav { display:flex; gap:28px; margin-left:24px; }
+    .topbar-nav a {
+      font-size:14px; font-weight:500; color:var(--ic-text); text-decoration:none;
+      padding:4px 0; border-bottom:2px solid transparent; transition:all .2s;
+    }
+    .topbar-nav a:hover { color:var(--ic-teal); }
+    .topbar-nav a.active { border-bottom-color:var(--ic-teal); font-weight:700; color:var(--ic-teal); }
+    .btn-enter {
+      background:var(--ic-teal); border:2px solid var(--ic-teal);
+      color:#FFF; padding:10px 28px; border-radius:24px;
+      font-family:inherit; font-size:14px; font-weight:700;
+      cursor:pointer; transition:all .2s;
+    }
+    .btn-enter:hover { background:var(--ic-teal-dark); border-color:var(--ic-teal-dark); }
+
+    /* ===== HERO STRIP ===== */
+    .hero {
+      background:linear-gradient(135deg, #FFFFFF 0%, var(--ic-teal-soft) 100%);
+      border-bottom:1px solid var(--border);
+    }
+    .hero-inner {
+      max-width:1320px; margin:0 auto; padding:36px 32px;
+      display:flex; align-items:center; justify-content:space-between; gap:32px;
+    }
+    .hero h1 {
+      font-size:32px; font-weight:700; letter-spacing:-0.02em;
+      color:var(--ic-ink); margin-bottom:6px;
+    }
+    .hero h1 strong { color:var(--ic-teal); }
+    .hero p { font-size:15px; color:var(--ic-text2); max-width:640px; line-height:1.6; }
+    .hero-meta { display:flex; gap:24px; margin-top:14px; font-size:13px; color:var(--ic-text2); flex-wrap:wrap; }
+    .hero-meta span { display:flex; align-items:center; gap:6px; }
+    .hero-meta strong { color:var(--ic-text); font-weight:700; }
+    .hero-art { flex:0 0 auto; }
+    .hero-art svg { height:96px; width:auto; }
+    @media (max-width:760px) { .hero-art { display:none; } }
+
+    /* ===== CATEGORY STRIP ===== */
+    .cat-strip {
+      background:#FFF; border-bottom:1px solid var(--border);
+      overflow-x:auto; -webkit-overflow-scrolling:touch;
+    }
+    .cat-strip-inner {
+      max-width:1320px; margin:0 auto; padding:18px 32px 0;
+      display:flex; justify-content:center; gap:48px;
+    }
+    .cat-item {
+      display:flex; flex-direction:column; align-items:center; gap:6px;
+      padding-bottom:14px; border-bottom:3px solid transparent;
+      cursor:default; min-width:100px; transition:border-color .2s;
+    }
+    .cat-item.active { border-bottom-color:var(--ic-teal); }
+    .cat-item.disabled { opacity:.5; cursor:not-allowed; }
+    .cat-item.disabled .cat-label { color:var(--ic-text3); }
+    .cat-icon { line-height:1; }
+    .cat-icon img { height:38px; width:auto; }
+    .cat-item.disabled .cat-icon img { filter:grayscale(1); }
+    .cat-label { font-size:13px; font-weight:600; color:var(--ic-text); text-align:center; white-space:nowrap; line-height:1.3; }
+    .cat-badge { font-size:9px; font-weight:700; color:#FFF; background:var(--ic-text3); border-radius:8px; padding:2px 7px; margin-top:-2px; letter-spacing:.03em; }
+
+    /* ===== LANDING ===== */
+    .container { max-width:1320px; margin:0 auto; padding:32px 32px 64px; }
+    .section-title {
+      font-size:28px; font-weight:700; color:var(--ic-text);
+      margin-bottom:24px; letter-spacing:-0.02em;
+    }
+    .grid { display:grid; grid-template-columns:repeat(5,1fr); gap:18px; }
+    @media (max-width:1180px) { .grid { grid-template-columns:repeat(3,1fr); } }
+    @media (max-width:820px) { .grid { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width:520px) { .grid { grid-template-columns:1fr; } }
+
+    .card {
+      background:var(--bg-card); border-radius:var(--radius);
+      cursor:pointer; overflow:hidden; transition:all .25s;
+      display:flex; flex-direction:column; border:1px solid transparent;
+    }
+    .card:hover { box-shadow:0 6px 24px rgba(0,166,166,.10); border-color:var(--border); transform:translateY(-2px); }
+    .card-img {
+      height:190px; display:flex; align-items:center; justify-content:center;
+      padding:16px 20px; position:relative;
+    }
+    .card-img img { height:100%; width:100%; object-fit:contain; }
+    .card-badge {
+      position:absolute; top:12px; right:12px;
+      background:#FFF; border-radius:20px; padding:4px 10px;
+      font-size:11px; font-weight:700; color:var(--ic-teal);
+      box-shadow:0 1px 4px rgba(0,0,0,.08);
+    }
+    .card-info { padding:16px 18px 20px; }
+    .card-name { font-size:16px; font-weight:700; color:var(--ic-text); margin-bottom:4px; }
+    .card-sub { font-size:13px; color:var(--ic-text2); line-height:1.4; }
+    .card-meta-row {
+      display:flex; align-items:center; gap:10px; margin-top:10px;
+      font-size:12px; color:var(--ic-text3); flex-wrap:wrap;
+    }
+    .card-meta-row span { display:flex; align-items:center; gap:4px; }
+
+    /* ===== TRACK VIEW ===== */
+    .track-header-bar {
+      background:#FFF; border-bottom:1px solid var(--border);
+      padding:18px 0;
+    }
+    .track-header-inner {
+      max-width:1320px; margin:0 auto; padding:0 32px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .track-title-group { display:flex; align-items:center; gap:14px; }
+    .track-title-group .icon { font-size:32px; }
+    .track-title-group h2 { font-size:22px; font-weight:700; letter-spacing:-0.02em; }
+    .track-title-group .sub { font-size:14px; color:var(--ic-text2); font-weight:500; }
+    .btn-back {
+      background:transparent; border:2px solid var(--border2);
+      color:var(--ic-text2); padding:8px 18px; border-radius:24px;
+      cursor:pointer; font-family:inherit; font-size:13px; font-weight:600; transition:all .2s;
+    }
+    .btn-back:hover { border-color:var(--ic-teal); color:var(--ic-teal); }
+
+    /* Progress */
+    .progress { margin-bottom:20px; }
+    .progress-top { display:flex; justify-content:space-between; font-size:13px; color:var(--ic-text2); margin-bottom:8px; }
+    .progress-bar { width:100%; height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
+    .progress-fill { height:100%; border-radius:2px; transition:width .4s; }
+
+    /* Pills */
+    .pills { display:flex; gap:6px; margin-bottom:24px; overflow-x:auto; padding-bottom:4px; }
+    .pill {
+      min-width:38px; height:38px; border-radius:10px;
+      border:2px solid var(--border); background:#FFF;
+      color:var(--ic-text3); font-family:inherit; font-size:13px; font-weight:600;
+      cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .2s;
+    }
+    .pill.active { border-width:2px; }
+    .pill.done { background:#E8F5E9; color:var(--ok); border-color:#C8E6C9; }
+
+    /* Step */
+    .step {
+      background:#FFF; border:1px solid var(--border); border-radius:var(--radius);
+      padding:28px; margin-bottom:16px; transition:border-color .3s;
+    }
+    .step.completed { border-color:#A5D6A7; background:#FAFFF9; }
+    .step-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+    .step-num {
+      width:34px; height:34px; border-radius:10px;
+      display:flex; align-items:center; justify-content:center;
+      font-weight:700; font-size:14px; flex-shrink:0;
+    }
+    .step-title { font-size:17px; font-weight:700; }
+    .step-check {
+      display:flex; align-items:center; gap:6px;
+      font-size:13px; color:var(--ic-text2); cursor:pointer; white-space:nowrap;
+    }
+    .step-check input { accent-color:var(--ok); width:17px; height:17px; }
+    .step-desc { font-size:14px; color:var(--ic-text2); line-height:1.7; margin-bottom:16px; }
+
+    /* Prompt */
+    .prompt-label {
+      display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;
+    }
+    .prompt-label span {
+      font-size:11px; color:var(--ic-text3); font-weight:700;
+      text-transform:uppercase; letter-spacing:.06em;
+    }
+    .btn-copy {
+      background:var(--ic-teal); color:#FFF; border:none;
+      padding:6px 14px; border-radius:20px; cursor:pointer;
+      font-family:inherit; font-size:12px; font-weight:600; transition:all .2s;
+    }
+    .btn-copy:hover { background:var(--ic-teal-dark); }
+    .btn-copy.copied { background:var(--ok); }
+    .prompt-box {
+      background:var(--bg-light); border:1px solid var(--border);
+      border-radius:8px; padding:16px 18px;
+      font-family:'DM Mono',monospace; font-size:13px; line-height:1.7;
+      white-space:pre-wrap; word-break:break-word;
+      max-height:300px; overflow-y:auto; color:var(--ic-text);
+    }
+
+    /* Expected output */
+    .expected {
+      background:#F1F8E9; border:1px solid #DCEDC8;
+      border-radius:8px; padding:12px 16px; margin-top:16px;
+    }
+    .expected-label { font-size:11px; color:var(--ok); font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
+    .expected-text { font-size:13px; color:var(--ic-text2); line-height:1.6; margin-top:4px; }
+
+    /* Warning */
+    .warning {
+      background:#FFF8E1; border:1px solid #FFE082;
+      border-radius:8px; padding:12px 16px; margin-bottom:16px;
+      font-size:13px; color:#A06600;
+    }
+
+    /* Tips */
+    .tips { margin-top:14px; }
+    .tip {
+      font-size:13px; color:var(--ic-text2); line-height:1.6;
+      padding-left:14px; border-left:3px solid var(--ic-teal); margin-bottom:8px;
+    }
+
+    /* Nav buttons */
+    .nav-btns { display:flex; justify-content:space-between; margin-top:20px; }
+    .btn-nav {
+      padding:12px 24px; border-radius:24px;
+      font-family:inherit; font-size:14px; font-weight:600; cursor:pointer; transition:all .2s;
+    }
+    .btn-prev {
+      background:transparent; border:2px solid var(--border2); color:var(--ic-text2);
+    }
+    .btn-prev:hover { border-color:var(--ic-teal); color:var(--ic-teal); }
+    .btn-prev:disabled { color:var(--ic-text3); border-color:var(--border); cursor:default; }
+    .btn-next { border:none; color:#FFF; font-weight:700; }
+    .btn-next:hover { filter:brightness(1.05); }
+    .btn-next:disabled { background:var(--border)!important; color:var(--ic-text3); cursor:default; }
+
+    /* FAQ */
+    .faq { margin-top:36px; }
+    .faq h3 { font-size:18px; font-weight:700; margin-bottom:14px; }
+    .faq-item {
+      background:var(--bg-light); border:1px solid var(--border);
+      border-radius:10px; margin-bottom:8px; overflow:hidden;
+    }
+    .faq-q {
+      width:100%; text-align:left; padding:14px 18px;
+      background:transparent; border:none; cursor:pointer;
+      display:flex; justify-content:space-between; align-items:center;
+      font-family:inherit; font-size:14px; font-weight:600; color:var(--ic-text);
+    }
+    .faq-a {
+      padding:0 18px 14px; font-size:13px; color:var(--ic-text2);
+      line-height:1.7; display:none;
+    }
+    .faq-item.open .faq-a { display:block; }
+    .faq-item.open .faq-toggle { transform:rotate(45deg); }
+    .faq-toggle { color:var(--ic-teal); font-size:20px; transition:transform .2s; }
+
+    /* Footer */
+    .ic-footer {
+      background:var(--ic-ink); color:#FFF; padding:32px;
+      text-align:center; font-size:13px; margin-top:48px;
+    }
+    .ic-footer a { color:var(--ic-teal); text-decoration:none; font-weight:700; }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-left">
+        <div class="topbar-logo" onclick="goBack()">
+          <img src="img/inchcape-logo.svg" alt="Inchcape">
+        </div>
+        <div class="topbar-divider"></div>
+        <div class="topbar-title">Genie Code Workshop</div>
+        <nav class="topbar-nav" id="topnav">
+          <a href="#" class="active">Workshop</a>
+          <a href="#" onclick="return false">Recursos</a>
+          <a href="#" onclick="return false">Soporte</a>
+        </nav>
+      </div>
+      <button class="btn-enter" id="btn-enter">Entrar</button>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-inner">
+      <div>
+        <h1>Genie Code Workshop · <strong>Inchcape</strong></h1>
+        <p>Aprende a usar Genie Code dentro de Databricks para acelerar tu trabajo diario — automatización de SAP, MLOps, apps, validación de datos y BI — con datos sintéticos de distribución automotriz de Inchcape en LatAm.</p>
+        <div class="hero-meta">
+          <span>⏱ <strong>~1.5 h por track</strong></span>
+          <span>🛤 <strong>5 tracks</strong></span>
+          <span>📋 <strong>6–7 pasos por track</strong></span>
+          <span>🚗 <strong>Datos automotriz + SAP</strong></span>
+        </div>
+      </div>
+      <div class="hero-art">
+        <svg viewBox="0 0 240 96" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <!-- Abstract car silhouette in Inchcape teal + charcoal -->
+          <path d="M20 66 h200 v10 q0 6 -6 6 h-188 q-6 0 -6 -6 z" fill="#14161A" opacity="0.12"/>
+          <path d="M36 66 q10 -30 34 -32 h64 q28 0 42 22 l24 6 q10 3 10 10 v4 h-190 q-6 0 -6 -6 z" fill="#00A6A6"/>
+          <path d="M78 36 h48 q18 0 28 14 h-92 q6 -14 16 -14 z" fill="#14161A" opacity="0.55"/>
+          <circle cx="72" cy="78" r="13" fill="#14161A"/>
+          <circle cx="72" cy="78" r="6" fill="#00A6A6"/>
+          <circle cx="176" cy="78" r="13" fill="#14161A"/>
+          <circle cx="176" cy="78" r="6" fill="#00A6A6"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div id="app"></div>
+
+  <!-- FOOTER -->
+  <div class="ic-footer">
+    Genie Code Workshop · Inchcape &amp; <a href="#">Databricks</a> · 2026
+  </div>
+
+  <script>
+const $ = s => document.querySelector(s);
+const COLORS = {
+  'data-engineering':'#00A6A6',
+  'data-science':'#6D4AFF',
+  'apps-development':'#F26A1B',
+  'pmo-ba':'#2D6CDF',
+  'powerbi-bi':'#1FA971'
+};
+const TRACK_IMAGES = {
+  'data-engineering':'img/track-engineering.svg',
+  'data-science':'img/track-datascience.svg',
+  'apps-development':'img/track-apps.svg',
+  'pmo-ba':'img/track-pmo.svg',
+  'powerbi-bi':'img/track-powerbi.svg'
+};
+
+let state = { view:'landing', tracks:[], trackData:null, step:0, done:{} };
+
+function loadProgress(id) {
+  try { return new Set(JSON.parse(localStorage.getItem('ws-ic-'+id)||'[]')); } catch(e) { return new Set(); }
+}
+function saveProgress(id, set) {
+  try { localStorage.setItem('ws-ic-'+id, JSON.stringify([...set])); } catch(e) {}
+}
+
+async function init() {
+  const res = await fetch('/api/tracks');
+  state.tracks = await res.json();
+  render();
+}
+
+async function selectTrack(id) {
+  const res = await fetch('/api/tracks/'+id);
+  state.trackData = await res.json();
+  state.step = 0;
+  state.done = loadProgress(id);
+  state.view = 'track';
+  render();
+  window.scrollTo(0,0);
+}
+
+function goBack() {
+  state.view = 'landing';
+  state.trackData = null;
+  render();
+  window.scrollTo(0,0);
+}
+
+function setStep(i) {
+  state.step = i;
+  render();
+  document.querySelector('#app .step')?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function toggleDone(stepId) {
+  if (state.done.has(stepId)) state.done.delete(stepId); else state.done.add(stepId);
+  saveProgress(state.trackData.id, state.done);
+  render();
+}
+
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ Copiado';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copiar'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+function renderLanding() {
+  const cards = state.tracks.map(t => {
+    const c = COLORS[t.id]||'#00A6A6';
+    const progress = loadProgress(t.id);
+    const pct = t.stepCount > 0 ? Math.round((progress.size / t.stepCount)*100) : 0;
+    const imgSrc = TRACK_IMAGES[t.id] || '';
+    return `
+    <div class="card" onclick="selectTrack('${t.id}')">
+      <div class="card-img" style="background:linear-gradient(145deg, ${c}05, ${c}12)">
+        ${pct > 0 ? `<div class="card-badge">${pct}%</div>` : ''}
+        <img src="${imgSrc}" alt="${esc(t.title)}">
+      </div>
+      <div class="card-info">
+        <div class="card-name">${esc(t.title)}</div>
+        <div class="card-sub">${esc(t.subtitle)}</div>
+        <div class="card-meta-row">
+          <span>⏱ ${t.estimatedMinutes} min</span>
+          <span>📋 ${t.stepCount} pasos</span>
+          <span>👥 ${t.participantCount}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="cat-strip">
+      <div class="cat-strip-inner">
+        <div class="cat-item active">
+          <div class="cat-icon"><img src="img/genie-lockup.svg" alt="Genie Code"></div>
+          <div class="cat-label">Genie Code<br>Workshop</div>
+        </div>
+        <div class="cat-item disabled">
+          <div class="cat-icon"><img src="img/databricks-symbol.svg" alt="AI/BI"></div>
+          <div class="cat-label">AI/BI<br>Workshop</div>
+          <div class="cat-badge">PRONTO</div>
+        </div>
+        <div class="cat-item disabled">
+          <div class="cat-icon"><img src="img/databricks-symbol.svg" alt="Lakeflow"></div>
+          <div class="cat-label">Lakeflow<br>Pipelines</div>
+          <div class="cat-badge">PRONTO</div>
+        </div>
+      </div>
+    </div>
+    <div class="container">
+      <h1 class="section-title">Elige tu track</h1>
+      <div class="grid">${cards}</div>
+    </div>`;
+}
+
+function renderTrack() {
+  const t = state.trackData;
+  const c = COLORS[t.id]||'#00A6A6';
+  const s = t.steps[state.step];
+  const isDone = state.done.has(s.id);
+  const pct = t.steps.length > 0 ? Math.round((state.done.size / t.steps.length)*100) : 0;
+
+  const pills = t.steps.map((st,i) => {
+    const d = state.done.has(st.id);
+    const act = i === state.step;
+    let cls = 'pill';
+    let sty = '';
+    if (d) cls += ' done';
+    if (act) { cls += ' active'; sty = `border-color:${c};${d?'':`background:${c}10;color:${c}`}`; }
+    return `<button class="${cls}" style="${sty}" onclick="setStep(${i})">${d?'✓':st.stepNumber}</button>`;
+  }).join('');
+
+  let promptHtml = '';
+  if (s.prompt) {
+    const escaped = s.prompt.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$');
+    promptHtml = `
+      <div class="prompt-label">
+        <span>Prompt para Genie Code</span>
+        <button class="btn-copy" onclick="copyText(\`${escaped}\`, this)">Copiar</button>
+      </div>
+      <div class="prompt-box">${esc(s.prompt)}</div>`;
+  }
+
+  let expectedHtml = '';
+  if (s.expectedOutput) {
+    expectedHtml = `
+      <div class="expected">
+        <div class="expected-label">Resultado esperado</div>
+        <div class="expected-text">${esc(s.expectedOutput)}</div>
+      </div>`;
+  }
+
+  let warningHtml = '';
+  if (s.warningNote) {
+    warningHtml = `<div class="warning">⚠️ ${esc(s.warningNote)}</div>`;
+  }
+
+  let tipsHtml = '';
+  if (s.tips && s.tips.length) {
+    tipsHtml = `<div class="tips">${s.tips.map(tip => `<div class="tip">${esc(tip)}</div>`).join('')}</div>`;
+  }
+
+  let faqHtml = '';
+  if (t.faq && t.faq.length) {
+    const items = t.faq.map((f,i) => `
+      <div class="faq-item" onclick="this.classList.toggle('open')">
+        <button class="faq-q">${esc(f.question)}<span class="faq-toggle">+</span></button>
+        <div class="faq-a">${esc(f.answer)}</div>
+      </div>`).join('');
+    faqHtml = `<div class="faq"><h3>Preguntas frecuentes</h3>${items}</div>`;
+  }
+
+  return `
+    <div class="track-header-bar">
+      <div class="track-header-inner">
+        <div class="track-title-group">
+          <span class="icon">${t.icon}</span>
+          <div>
+            <h2>${esc(t.title)}</h2>
+            <div class="sub">${esc(t.subtitle)}</div>
+          </div>
+        </div>
+        <button class="btn-back" onclick="goBack()">← Volver</button>
+      </div>
+    </div>
+    <div class="container">
+      <div class="progress">
+        <div class="progress-top">
+          <span>Paso ${state.step+1} de ${t.steps.length}</span>
+          <span style="color:${c};font-weight:700">${pct}% completado</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${c}"></div></div>
+      </div>
+      <div class="pills">${pills}</div>
+      <div class="step ${isDone?'completed':''}">
+        <div class="step-header">
+          <div style="display:flex;align-items:center;gap:14px;flex:1">
+            <div class="step-num" style="background:${isDone?'#E8F5E9':c+'15'};color:${isDone?'var(--ok)':c}">${isDone?'✓':s.stepNumber}</div>
+            <div class="step-title">${esc(s.title)}</div>
+          </div>
+          <label class="step-check">
+            <input type="checkbox" ${isDone?'checked':''} onchange="toggleDone('${s.id}')"> Completado
+          </label>
+        </div>
+        <div class="step-desc">${esc(s.description)}</div>
+        ${warningHtml}
+        ${promptHtml}
+        ${expectedHtml}
+        ${tipsHtml}
+      </div>
+      <div class="nav-btns">
+        <button class="btn-nav btn-prev" ${state.step===0?'disabled':''} onclick="setStep(${state.step-1})">← Anterior</button>
+        <button class="btn-nav btn-next" style="background:${c}" ${state.step===t.steps.length-1?'disabled':''} onclick="setStep(${state.step+1})">Siguiente →</button>
+      </div>
+      ${faqHtml}
+    </div>`;
+}
+
+function render() {
+  $('#app').innerHTML = state.view === 'landing' ? renderLanding() : renderTrack();
+}
+
+init();
+  </script>
+</body>
+</html>

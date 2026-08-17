@@ -1,0 +1,6 @@
+.venv-test/
+.venv-dbc/
+__pycache__/
+*.pyc
+.DS_Store
+.databricks/
