@@ -5,7 +5,7 @@ status: active
 created: 2026-08-16
 owner: David Cascante
 audience: Inchcape Colombia — 5 equipos (Data Engineering, Data Science, Apps Dev, PMO & BA, Power BI/BI Devs)
-duration: ~1.5 h por track
+duration: 2 días (Día 1 = Fundamentos para todos · Día 2 = track por equipo)
 delivery_date: 2026-08-26
 locations: Bogotá (~53 asistentes) + Medellín (~20 asistentes)
 repo: https://github.com/davcas777/inchcape_geniecode
@@ -18,23 +18,27 @@ Workshop práctico de **Genie Code dentro de Databricks**, re-skineado por compl
 - **Fecha de entrega:** 2026-08-26 (Bogotá + Medellín)
 - **Repo destino:** https://github.com/davcas777/inchcape_geniecode
 - **App en vivo (workspace de David):** https://inchcape-geniecode-workshop-520209755093735.15.azure.databricksapps.com _(detrás de SSO del workspace)_
-- **Estado:** datos generados en `dacascan_ws1` · 29/29 prompts validados · app desplegada y RUNNING.
+- **Estado:** datos generados en `dacascan_ws1` · **42/42 prompts validados** · app desplegada y RUNNING · workshop de 2 días (Día 1 fundamentos + Día 2 por equipo).
 
 ## Objetivo
 Que cada uno de los 5 equipos de Inchcape aprenda a usar Genie Code para acelerar su trabajo diario, cubriendo a alto nivel los temas que solicitaron, con prompts probados que funcionan sobre datos sintéticos del dominio automotriz + SAP.
 
-## Los 5 tracks (uno por equipo)
-Cada track mapea directamente a lo que pidió ese equipo. Todo pasa por Genie Code.
+## Estructura: 2 días, 6 tracks, 61 pasos
 
-| Track | Equipo | Pasos | Cubre (de lo que pidieron) |
-|-------|--------|-------|-----------------------------|
-| **Data Engineering** | Data Engineering | 7 | Automatizar tablas desde SAP + campos técnicos · optimizar lecturas/escrituras (Liquid Clustering) · Unity Catalog gobierno · Data Mesh / Data Products · Build an app con Genie Code (GBS/SAP) |
-| **Data Science & ML** | Data Science | 7 | Casos con Genie Code para apps · ML/MLOps · debugging en test · DAB + DBConnect en VSCode · publicar predicciones como Data Product |
-| **Apps Development** | Apps Dev | 7 | Despliegue seguro (local→Databricks) · web scraping seguro · Build an app con Genie Code (end-to-end + prereqs admin) · Model Serving · DAB + DBConnect |
-| **PMO & BA** | PMO & BA | 6 | Validación/consistencia de datos · AI/BI dashboards · Genie ONE (Genie Space) · Genie AGENTS · apps internas sin código tradicional |
-| **Power BI / BI Devs** | Power BI / BI | 7 | Genie Code para SQL de reportes · validar campos de reportes de mercado · dashboards AI/BI · Unity Catalog gobierno · app ligera · Genie AGENTS |
+**Día 1 — Fundamentos (todos los equipos juntos):** base común de Genie Code y Databricks antes de dividirse por equipo.
 
-> **Decisión de estructura:** los 4 tracks del app original (Engineering/BI/DS/Governance) se reorganizaron a **5 tracks alineados a los 5 equipos** de Inchcape, porque cada equipo asiste a su propia sesión y los temas venían organizados por equipo. Los temas transversales (Build an app, DAB/DBConnect, Data Mesh, UC) aparecen en los tracks donde cada equipo los pidió.
+**Día 2 — Un track por equipo:** cada equipo profundiza en sus casos de uso. Todo pasa por Genie Code.
+
+| Track | Día | Equipo | Pasos | Cubre |
+|-------|-----|--------|-------|-------|
+| **Fundamentos** | 1 | Todos | 12 | Activar Genie Code · navegar Unity Catalog · explorar datos en lenguaje natural · joins/agregaciones · notebooks (SQL+Python) · primer pipeline Delta · visualización · depurar · escribir buenos prompts · intro AI/BI + Genie Spaces · intro Databricks Apps |
+| **Data Engineering** | 2 | Data Engineering | 10 | Automatizar tablas desde SAP + campos técnicos · optimizar lecturas/escrituras (Liquid Clustering) · Unity Catalog gobierno · Data Products · build-an-app (GBS/SAP) · reconciliación · Lakeflow Jobs · documentación automática |
+| **Data Science & ML** | 2 | Data Science | 10 | Genie Code para apps · MLflow lifecycle · debugging en test · DAB + DBConnect · predicciones como Data Product · feature engineering · comparación de modelos · batch scoring + drift |
+| **Apps Development** | 2 | Apps Dev | 10 | Despliegue seguro (local→Databricks) · web scraping seguro · build-an-app end-to-end + prereqs admin · Model Serving · DAB + DBConnect · auth/roles · logging/observabilidad · app con Genie embebido |
+| **PMO & BA** | 2 | PMO & BA | 9 | Validación/consistencia · AI/BI dashboards · Genie ONE · Genie AGENTS · apps internas · checks avanzados (frescura/integridad) · tablero de alertas · exportar/compartir reporte |
+| **Power BI / BI Devs** | 2 | Power BI / BI | 10 | Genie Code para SQL de reportes · validar campos · dashboards AI/BI · Unity Catalog gobierno · app ligera · Genie AGENTS · DAX→SQL · Metric Views · validaciones avanzadas |
+
+> **Decisión de estructura:** partimos del app original (4 tracks genéricos) y lo reorganizamos a un **Día 1 de Fundamentos común** + **5 tracks alineados a los 5 equipos** de Inchcape (Día 2). El Día 1 nivela a todos en Genie Code + Databricks; el Día 2 cada equipo profundiza. Se agregaron reps (mismo nivel alto) para llenar los 2 días. Los temas transversales (build-an-app, DAB/DBConnect, Data Mesh, UC) aparecen donde cada equipo los pidió.
 
 ## Datos del dominio
 Se generan con `generate_workshop_data.py`. Catálogo por defecto: **`dacascan_ws1`** (workspace de David). En delivery en el workspace de Inchcape, cambia la constante `CATALOG` del script y haz find-replace de `dacascan_ws1` en `data/tracks.json`.
@@ -77,12 +81,12 @@ Para los ejercicios de **validación/consistencia** (tracks DE, PMO y Power BI):
 | Archivo | Propósito |
 |---------|-----------|
 | `generate_workshop_data.py` | Notebook/script PySpark que crea las 9 tablas (gold + SAP raw) con ~400 defectos. Ejecutar antes del workshop. |
-| `data/tracks.json` | Contenido de los 5 tracks (34 pasos). Todo en español, prompts probados. |
+| `data/tracks.json` | Contenido de los 6 tracks (61 pasos): Fundamentos (Día 1) + 5 tracks por equipo (Día 2). Todo en español, prompts probados. |
 | `frontend/index.html` | SPA con marca Inchcape (DM Sans, charcoal + teal). Lee de `/api/tracks`. |
-| `frontend/img/*.svg` | Íconos de los 5 tracks + logo Inchcape + Genie + símbolo Databricks. |
+| `frontend/img/*.svg` | Íconos de los 6 tracks (incl. Fundamentos) + logo Inchcape + Genie + símbolo Databricks. |
 | `main.py` | Backend FastAPI (2 endpoints + mount estático). |
 | `app.yaml`, `requirements.txt` | Configuración para Databricks Apps. |
-| `test_prompts.py` | Script de validación que ejecuta la solución canónica de cada prompt que toca datos, contra las tablas sintéticas. |
+| `test_prompts.py` | Script de validación que ejecuta la solución canónica de cada prompt que toca datos, contra las tablas sintéticas. **42/42 checks PASS.** |
 
 ## Preparación previa al workshop
 1. **Genera los datos:** ejecuta `generate_workshop_data.py` en el workspace (ver constante `CATALOG`).

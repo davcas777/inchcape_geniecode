@@ -1,6 +1,193 @@
 {
   "tracks": [
     {
+      "id": "fundamentos",
+      "title": "Fundamentos (Día 1)",
+      "subtitle": "Genie Code y Databricks, para todos los equipos",
+      "description": "El track común del Día 1. Aprende qué es Genie Code y cómo usarlo, navega Unity Catalog, explora datos con lenguaje natural, construye tu primer pipeline, visualiza, depura, y conoce a alto nivel AI/BI, Genie Spaces y Databricks Apps. Base para el Día 2 por equipo.",
+      "icon": "🧭",
+      "color": "#D9A441",
+      "estimatedMinutes": 180,
+      "participantCount": 73,
+      "steps": [
+        {
+          "id": "fund-step-1",
+          "stepNumber": 1,
+          "title": "Activa Genie Code y tu primer prompt",
+          "description": "Genie Code es el asistente de IA dentro de los notebooks de Databricks: le describes lo que quieres en español y genera el código. Abre un notebook nuevo, actívalo con el botón ✨ (arriba a la derecha) y usa tu primer prompt.",
+          "prompt": "¿Qué tablas hay en el catálogo dacascan_ws1, schema inchcape_gold? Para cada tabla, muéstrame el nombre, cuántas filas tiene y una descripción de una línea de qué contiene. Formatea como una tabla legible.",
+          "expectedOutput": "Una tabla con las 5 tablas de inchcape_gold (dim_dealership, fact_vehicle_sales, fact_service_orders, fact_parts_inventory, fact_daily_kpis), sus conteos de filas y una breve descripción.",
+          "tips": [
+            "Necesitas un cluster o SQL Warehouse activo asignado al notebook (esquina superior derecha).",
+            "Genie Code entiende español: escribe como le hablarías a un colega."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "fund-step-2",
+          "stepNumber": 2,
+          "title": "Navega Unity Catalog",
+          "description": "Unity Catalog organiza los datos en catálogo → schema → tabla y guarda su gobierno (permisos, comentarios, linaje). Usa Genie Code para inspeccionar una tabla en detalle.",
+          "prompt": "Descríbeme en detalle la tabla dacascan_ws1.inchcape_gold.fact_vehicle_sales: la lista de columnas con su tipo y una descripción inferida de cada una, y muéstrame 5 filas de ejemplo.",
+          "expectedOutput": "El schema completo de fact_vehicle_sales (sale_id, sale_date, dealer_id, vin, oem_brand, segment, sale_price_usd, etc.) con tipos y 5 filas de ejemplo.",
+          "tips": [
+            "También puedes navegar visualmente en el Catalog Explorer de la barra lateral.",
+            "Fíjate en los nombres de columnas: te dicen qué preguntas puedes hacer después."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "fund-step-3",
+          "stepNumber": 3,
+          "title": "Explora datos con lenguaje natural",
+          "description": "El superpoder de Genie Code: haces una pregunta de negocio y él genera el SQL/PySpark. Practica con una pregunta agregada.",
+          "prompt": "¿Cuántos vehículos se vendieron en total y cuál fue el revenue en USD por país? Une dacascan_ws1.inchcape_gold.fact_vehicle_sales con dim_dealership por dealer_id. Excluye las ventas con dealer_id = 99999 y precios <= 0. Ordena por revenue descendente.",
+          "expectedOutput": "Una tabla con los 6 países (Colombia, Chile, Perú, Ecuador, Panamá, Costa Rica), sus unidades vendidas y revenue total en USD, ordenada de mayor a menor.",
+          "tips": [
+            "Mientras más específico seas (tablas, columnas, filtros, orden), mejor el resultado.",
+            "Prueba variar la pregunta: por ciudad, por marca, por mes."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "fund-step-4",
+          "stepNumber": 4,
+          "title": "Joins y agregaciones",
+          "description": "Casi todo análisis cruza tablas. Pide a Genie Code un ranking que combine hechos y dimensión.",
+          "prompt": "Muéstrame el top 10 de concesionarios por revenue de ventas. Une dacascan_ws1.inchcape_gold.fact_vehicle_sales con dim_dealership. Incluye dealer_code, país, ciudad, marca OEM, unidades vendidas, revenue total USD y ticket promedio. Excluye dealer_id 99999 y precios <= 0.",
+          "expectedOutput": "Un top 10 de concesionarios con su país, ciudad, marca, unidades, revenue y ticket promedio, ordenado por revenue.",
+          "tips": [
+            "El JOIN por dealer_id es el patrón que repetirás en casi todos los análisis.",
+            "Si un concesionario te sorprende, pídele a Genie Code que profundice en él."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "fund-step-5",
+          "stepNumber": 5,
+          "title": "Notebooks: SQL, Python y celdas",
+          "description": "En un notebook mezclas SQL y Python. Entiende la diferencia pidiéndole a Genie Code el mismo análisis de dos formas.",
+          "prompt": "Dame el análisis de revenue por país de DOS formas equivalentes: (1) una celda SQL usando %sql, y (2) una celda Python con PySpark y display(). Explícame brevemente cuándo conviene cada una.",
+          "expectedOutput": "Dos celdas: una SQL con %sql y una PySpark con display(), ambas devolviendo revenue por país, más una explicación de cuándo usar cada estilo.",
+          "tips": [
+            "%sql es ideal para exploración rápida; PySpark para lógica reutilizable y pipelines.",
+            "Las variables de una celda Python siguen vivas en las siguientes celdas del notebook."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "fund-step-6",
+          "stepNumber": 6,
+          "title": "Tu primer pipeline: leer → transformar → escribir",
+          "description": "El patrón base de data engineering. Pide a Genie Code un mini-pipeline que produzca una tabla nueva.",
+          "prompt": "Crea un pipeline simple en PySpark: lee dacascan_ws1.inchcape_gold.fact_service_orders, calcula por concesionario el número de órdenes, el costo total de repuestos, el costo total de labor y el total general, y guarda el resultado como tabla Delta en dacascan_ws1.inchcape_bronze.resumen_servicio_por_dealer (modo overwrite). Muéstrame el resultado ordenado por total general.",
+          "expectedOutput": "Un pipeline que agrega por dealer_id y escribe la tabla Delta inchcape_bronze.resumen_servicio_por_dealer, mostrando el resumen por concesionario.",
+          "tips": [
+            "Leer → transformar → escribir Delta es el 80% del trabajo de datos: domínalo aquí.",
+            "Delta te da versionado y time travel automáticos sobre la tabla que escribiste."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "fund-step-7",
+          "stepNumber": 7,
+          "title": "Visualiza resultados con Plotly",
+          "description": "Los datos se entienden mejor en gráficos. Pide a Genie Code visualizaciones directamente.",
+          "prompt": "Genera dos visualizaciones con Plotly usando dacascan_ws1.inchcape_gold: (1) un gráfico de barras del revenue de ventas por país (fact_vehicle_sales + dim_dealership), y (2) un gráfico de línea del revenue de ventas total por mes. Usa color de acento teal #00A6A6 y fondo blanco.",
+          "expectedOutput": "Dos gráficos Plotly inline: barras de revenue por país y línea de revenue mensual, en color teal.",
+          "tips": [
+            "También puedes usar display() sobre un DataFrame y elegir el tipo de gráfico en la UI.",
+            "Pídele a Genie Code que cambie colores, títulos o el tipo de gráfico hasta que te guste."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "fund-step-8",
+          "stepNumber": 8,
+          "title": "Depura con Genie Code (error → fix)",
+          "description": "El uso más común en el día a día: pegar código con error y pedir el arreglo. Practica el patrón con este snippet roto.",
+          "prompt": "Este código falla al ejecutar. Encuentra y corrige TODOS los errores, y explícame qué estaba mal:\n\n```python\ndf = spark.read.table(\"dacascan_ws1.inchcape_gold.fact_vehicle_sales\")\nresult = df.groupBy(\"oem_brand\").agg(sum(\"sale_price_usd\").alias(\"revenue\"))\ndisplay(reslt)\n```",
+          "expectedOutput": "Genie Code identifica: (1) falta importar sum (from pyspark.sql.functions import sum, o usar F.sum), y (2) 'reslt' es un typo de 'result'. Devuelve el código corregido y funcional.",
+          "tips": [
+            "Copia el error COMPLETO junto al código: mientras más contexto, mejor el diagnóstico.",
+            "Este patrón funciona con cualquier notebook que te compartan: pégalo y pide revisión."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "fund-step-9",
+          "stepNumber": 9,
+          "title": "Escribe buenos prompts",
+          "description": "La calidad del resultado depende de la calidad del prompt. Aprende a especificar bien pidiéndole a Genie Code que mejore uno vago.",
+          "prompt": "Tengo esta petición vaga: 'dame las ventas'. Reescríbela como 3 versiones de prompt para Genie Code, cada una más específica que la anterior (agregando tabla, columnas, filtros, agrupación y formato de salida), y explica por qué cada versión da mejores resultados.",
+          "expectedOutput": "3 prompts progresivamente mejores para 'dame las ventas', con explicación de qué agrega cada nivel de especificidad.",
+          "tips": [
+            "Un buen prompt nombra: la tabla, las columnas, los filtros, el agrupamiento y el formato de salida.",
+            "Guarda tus mejores prompts: son reutilizables y estandarizan el trabajo de tu equipo."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "fund-step-10",
+          "stepNumber": 10,
+          "title": "Introducción a AI/BI y Genie Spaces",
+          "description": "Más allá de los notebooks, Databricks permite dashboards AI/BI y Genie Spaces (preguntar a los datos en lenguaje natural). Conócelos a alto nivel.",
+          "prompt": "Explícame en términos simples qué es un dashboard AI/BI y qué es un Genie Space en Databricks, y en qué se diferencian. Luego dame 5 preguntas de ejemplo que un usuario de negocio de Inchcape podría hacerle a un Genie Space sobre los datos de ventas y servicio.",
+          "expectedOutput": "Una explicación clara de dashboard AI/BI vs Genie Space y 5 preguntas de ejemplo de negocio (ej. '¿Qué país tuvo mayor revenue el último trimestre?').",
+          "tips": [
+            "El dashboard muestra gráficos fijos; el Genie Space responde cualquier pregunta en lenguaje natural.",
+            "En el Día 2, los equipos de PMO y BI profundizan en esto."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "fund-step-11",
+          "stepNumber": 11,
+          "title": "Introducción a Databricks Apps",
+          "description": "Databricks Apps te deja construir aplicaciones web gobernadas sobre tus datos. Entiende cuándo usarlas.",
+          "prompt": "Explícame qué es una Databricks App, para qué sirve y cuándo conviene usarla en lugar de un dashboard. Dame 3 ejemplos de apps internas útiles para Inchcape (por ejemplo, seguimiento de solicitudes o revisión de datos antes de un reporte).",
+          "expectedOutput": "Una explicación de qué es una Databricks App, cuándo usarla vs un dashboard, y 3 ejemplos concretos para Inchcape.",
+          "tips": [
+            "Una app permite interacción (formularios, botones, escritura), no solo visualizar.",
+            "En el Día 2, los equipos de Apps Dev, DE, PMO y BI construyen apps con Genie Code."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "fund-step-12",
+          "stepNumber": 12,
+          "title": "Reflexión y elige tu track de Día 2",
+          "description": "Cierre del Día 1. Escribe tus respuestas en una celda markdown y decide qué track harás mañana.",
+          "prompt": null,
+          "expectedOutput": null,
+          "tips": [
+            "1. ¿Cuál de las cosas que viste hoy te ahorraría más tiempo esta semana?",
+            "2. ¿Qué pregunta de datos harías primero con Genie Code al volver a tu trabajo?",
+            "3. ¿Qué track de Día 2 vas a hacer: Data Engineering, Data Science, Apps, PMO & BA o Power BI?"
+          ],
+          "warningNote": null
+        }
+      ],
+      "faq": [
+        {
+          "question": "¿Necesito saber programar para este track?",
+          "answer": "No. La idea de Genie Code es que describas lo que quieres en español y él genere el código. Copia los prompts tal cual."
+        },
+        {
+          "question": "Genie Code no responde",
+          "answer": "Verifica que tienes un cluster o SQL Warehouse activo asignado al notebook. Si está iniciando, espera 1-2 minutos."
+        },
+        {
+          "question": "¿Qué track sigo en el Día 2?",
+          "answer": "El de tu equipo: Data Engineering, Data Science & ML, Apps Development, PMO & BA o Power BI / BI Developers. Cada uno profundiza en tus casos de uso."
+        },
+        {
+          "question": "No tengo acceso al catálogo dacascan_ws1",
+          "answer": "Avisa al facilitador (David). Necesitas USE CATALOG y SELECT sobre inchcape_gold."
+        }
+      ]
+    },
+    {
       "id": "data-engineering",
       "title": "Data Engineering",
       "subtitle": "Automatiza SAP y tus pipelines con Genie Code",
@@ -91,6 +278,45 @@
         {
           "id": "eng-step-7",
           "stepNumber": 7,
+          "title": "Reconcilia datos entre dos fuentes",
+          "description": "Al migrar o consolidar datos (SAP, legados, extractos), validar que dos tablas cuadran es esencial. Usa Genie Code para generar un reporte de reconciliación.",
+          "prompt": "Escribe un notebook PySpark que reconcilie dacascan_ws1.inchcape_gold.dim_dealership con dacascan_ws1.inchcape_gold.fact_vehicle_sales. El reporte debe incluir:\n1. Concesionarios en dim_dealership que NO tienen ventas asociadas (dimensión huérfana).\n2. dealer_id en fact_vehicle_sales que NO existen en dim_dealership (esperamos ~60 con dealer_id = 99999).\n3. Para los que sí coinciden: conteo de ventas, revenue total y fecha más reciente por concesionario.\n4. Un resumen: total matches, huérfanos en dimensión y huérfanos en hechos.\n\nUsa LEFT ANTI JOIN para los huérfanos y muestra los resultados con display().",
+          "expectedOutput": "Un notebook con LEFT ANTI JOIN en ambos sentidos (detecta ~60 ventas huérfanas con dealer_id 99999), un INNER JOIN con métricas y un resumen final.",
+          "tips": [
+            "Este patrón valida cualquier migración: aplica el mismo par de anti-joins a tus tablas reales.",
+            "Los ~60 huérfanos son defectos sembrados a propósito para que veas el reporte funcionando."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "eng-step-8",
+          "stepNumber": 8,
+          "title": "Orquesta con un Lakeflow Job",
+          "description": "Los pipelines necesitan orquestación. Usa Genie Code para generar la definición de un Job multi-tarea con el Databricks SDK.",
+          "prompt": "Genera el código Python con el Databricks SDK (databricks.sdk) para crear un Job con 3 tareas encadenadas:\n1. 'curar_sap': ejecuta el notebook de curación SAP (Step 2).\n2. 'construir_data_product': ejecuta el notebook del Data Product (Step 5), depende de curar_sap.\n3. 'validar_calidad': ejecuta un notebook de checks de calidad, depende de construir_data_product.\n\nConfiguración: compute serverless, schedule diario a las 5am, timeout de 30 min por tarea y notificación por email si falla. Usa databricks.sdk.service.jobs.",
+          "expectedOutput": "Código con WorkspaceClient() que define 3 tareas con dependencias, compute serverless, schedule cron, timeout y notificaciones, y crea el Job vía API.",
+          "tips": [
+            "No necesitas ejecutarlo ahora: el objetivo es ver cómo Genie Code genera definiciones de Jobs completas.",
+            "Este es el patrón base para reemplazar orquestadores externos por Lakeflow Jobs."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "eng-step-9",
+          "stepNumber": 9,
+          "title": "Genera documentación automática",
+          "description": "Datos sin documentación no se usan. Usa Genie Code para auto-generar un diccionario de datos de las tablas del workshop.",
+          "prompt": "Genera un notebook que auto-documente todas las tablas de dacascan_ws1.inchcape_gold:\n1. Para cada tabla: nombre, descripción inferida, lista de columnas con tipo y descripción inferida, row count y fecha del dato más reciente si aplica.\n2. Formatea todo como markdown limpio que pueda pegarse en Confluence o el portal interno de Datos.\n3. Al final, una tabla resumen: tabla, filas, columnas, última actualización.",
+          "expectedOutput": "Un notebook que produce markdown con la documentación de las 5 tablas gold y una tabla resumen de metadata de alto nivel.",
+          "tips": [
+            "Este output puedes compartirlo directamente con Gobierno como documentación oficial.",
+            "Combínalo con los COMMENT/TAGS del Step 4 para que el buscador de Catalog lo aproveche."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "eng-step-10",
+          "stepNumber": 10,
           "title": "Reflexión: ¿dónde aplicas esto mañana?",
           "description": "Último paso. Piensa en tu trabajo actual y escribe en una celda markdown las respuestas. Las compartirás con tu grupo en la actividad final.",
           "prompt": null,
@@ -213,6 +439,45 @@
         {
           "id": "ds-step-7",
           "stepNumber": 7,
+          "title": "Feature engineering para forecasting",
+          "description": "Muchos casos requieren features temporales. Usa Genie Code para construir un set de features de demanda de servicio por concesionario.",
+          "prompt": "Crea un pipeline de feature engineering en PySpark sobre dacascan_ws1.inchcape_gold.fact_service_orders para predecir el número diario de órdenes por concesionario:\n1. Agrega a nivel dealer_id + order_date: conteo de órdenes y total_usd del día.\n2. Genera features temporales: day_of_week, month, is_weekend, lag_7d (órdenes hace 7 días), rolling_mean_7d y rolling_mean_28d (promedios móviles) usando window functions.\n3. Elimina las filas con NULLs generados por los lags.\n4. Haz un split temporal: train (todo menos últimos 30 días) y test (últimos 30 días).\n5. Muestra las dimensiones de train y test y un sample de las features.",
+          "expectedOutput": "Un notebook con window functions para lags y rolling means, split temporal (no aleatorio) y el sample de features. Train con la mayoría de filas, test con los últimos 30 días.",
+          "tips": [
+            "Los lags y rolling means suelen ser las features más potentes en series temporales.",
+            "El split temporal es crucial: nunca mezcles futuro con pasado en time series."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "ds-step-8",
+          "stepNumber": 8,
+          "title": "Compara variantes de modelo",
+          "description": "Elegir el mejor modelo requiere comparar. Usa Genie Code para entrenar y comparar varias configuraciones con MLflow.",
+          "prompt": "Genera un notebook que compare 3 variantes de un RandomForestRegressor para predecir total_usd de una orden de servicio (reusa las features del Step 2 de este track):\n1. Modelo A: n_estimators=50, max_depth=6.\n2. Modelo B: n_estimators=150, max_depth=10.\n3. Modelo C: n_estimators=300, max_depth=15.\n\nPara cada uno: entrena sobre el mismo split, evalúa RMSE/MAE/R² y registra un run en el experiment '/Shared/inchcape/service-cost-prediction'. Al final: una tabla comparativa (modelo, RMSE, MAE, R², tiempo de entrenamiento) y un análisis de residuos por modelo.",
+          "expectedOutput": "3 MLflow runs comparables, una tabla con métricas por modelo y un análisis de residuos. Podrás verlos lado a lado en MLflow Experiments.",
+          "tips": [
+            "En la UI de MLflow Experiments puedes comparar runs visualmente y ordenar por métrica.",
+            "Más complejo no siempre es mejor: observa si el modelo C sobreajusta sin mejorar el test."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "ds-step-9",
+          "stepNumber": 9,
+          "title": "Batch scoring y monitoreo de drift",
+          "description": "Un modelo en producción necesita re-scoring periódico y monitoreo. Usa Genie Code para generar el batch scoring y un chequeo básico de drift.",
+          "prompt": "Genera un notebook que:\n1. Haga batch scoring: cargue el modelo dacascan_ws1.inchcape_gold.service_cost_model, prediga sobre fact_service_orders del último mes y escriba dacascan_ws1.inchcape_gold.scoring_costo_servicio con order_date, dealer_id, total_usd_real, total_usd_predicho y error_abs.\n2. Calcule métricas de monitoreo: error absoluto medio del mes vs el histórico, y detecte si el error creció más de 20% (posible drift).\n3. Compare la distribución de total_usd del mes actual vs el mes anterior (media, desviación) como chequeo simple de data drift.\n4. Imprima una alerta si hay drift.",
+          "expectedOutput": "Un notebook que escribe la tabla de scoring, calcula el error del mes vs histórico, compara distribuciones mes a mes e imprime una alerta si detecta drift.",
+          "tips": [
+            "El monitoreo de drift más simple: comparar métricas de error y distribuciones entre periodos.",
+            "Cuando el error crece de forma sostenida, es señal de reentrenar el modelo."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "ds-step-10",
+          "stepNumber": 10,
           "title": "Reflexión: ¿dónde aplicas esto mañana?",
           "description": "Último paso. Piensa en tus proyectos actuales y cómo Genie Code + MLOps cambian tu flujo. Escribe tus respuestas para compartir con el grupo.",
           "prompt": null,
@@ -335,6 +600,45 @@
         {
           "id": "apps-step-7",
           "stepNumber": 7,
+          "title": "Autenticación y control de acceso en la app",
+          "description": "Una app interna necesita saber quién la usa y qué puede ver. Usa Genie Code para agregar identidad y control de acceso.",
+          "prompt": "Para mi Databricks App de FastAPI, genera el código para:\n1. Obtener la identidad del usuario que abrió la app leyendo los headers que inyecta Databricks Apps (por ejemplo X-Forwarded-User / X-Forwarded-Email).\n2. Un decorador o dependencia de FastAPI que restrinja ciertos endpoints (por ejemplo /api/admin) a una lista de usuarios o grupos permitidos.\n3. Explica la diferencia entre ejecutar consultas con la identidad del service principal de la app vs. on-behalf-of del usuario, y cuándo usar cada una para respetar los permisos de Unity Catalog.",
+          "expectedOutput": "Código FastAPI que lee la identidad del usuario desde los headers, una dependencia de autorización por usuario/grupo, y la explicación de service principal vs on-behalf-of para gobierno con Unity Catalog.",
+          "tips": [
+            "Databricks Apps ya autentica al usuario contra el workspace; tú solo lees su identidad y autorizas.",
+            "Para respetar permisos por usuario en los datos, evalúa el patrón on-behalf-of."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "apps-step-8",
+          "stepNumber": 8,
+          "title": "Logging y observabilidad de la app",
+          "description": "Para operar una app en producción necesitas trazabilidad. Usa Genie Code para instrumentar logging y un endpoint de salud.",
+          "prompt": "Agrega observabilidad a mi Databricks App de FastAPI. Genera:\n1. Configuración de logging estructurado (JSON) que registre cada request: usuario, endpoint, latencia y status.\n2. Un middleware de FastAPI que mida el tiempo de cada request y lo loguee.\n3. Un endpoint GET /health que verifique la conexión al SQL Warehouse y devuelva ok/degraded.\n4. Explica dónde ver estos logs en Databricks Apps y cómo usarlos para diagnosticar problemas.",
+          "expectedOutput": "Código con logging estructurado, un middleware de latencia, un endpoint /health que prueba el warehouse, y la explicación de dónde ver los logs de la app.",
+          "tips": [
+            "El logging estructurado (JSON) es mucho más fácil de filtrar y analizar que texto libre.",
+            "Un endpoint /health te permite detectar caídas del warehouse antes que los usuarios."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "apps-step-9",
+          "stepNumber": 9,
+          "title": "Una segunda app: Genie embebido",
+          "description": "Da un salto: una app que deja al usuario preguntar en lenguaje natural. Usa Genie Code para conectar tu app a un Genie Space o al Foundation Model API.",
+          "prompt": "Genera una Databricks App que sea un asistente de preguntas sobre los datos de Inchcape. Debe:\n1. Un frontend con una caja de texto donde el usuario escribe una pregunta en español.\n2. Un endpoint POST /api/ask que reciba la pregunta y la responda usando el Foundation Model API (endpoint 'databricks-claude-sonnet-4'), pasando como contexto la descripción de las tablas de dacascan_ws1.inchcape_gold.\n3. app.yaml, requirements.txt y los pasos de despliegue.\n4. Explica cómo, alternativamente, podrías conectar la app a un Genie Space existente vía su API para respuestas basadas directamente en los datos.",
+          "expectedOutput": "Un scaffold de app con caja de pregunta, endpoint /api/ask que llama al FMAPI con contexto de tablas, config de despliegue, y la explicación de la alternativa con Genie Space API.",
+          "tips": [
+            "Empezar con el FMAPI + contexto de tablas es lo más simple; el Genie Space da respuestas ancladas en datos reales.",
+            "Esta app es el puente entre 'construir apps' y las capacidades de IA de la plataforma."
+          ],
+          "warningNote": "Este step usa el Foundation Model API. Si no está habilitado, el facilitador muestra el resultado esperado; el scaffold de la app funciona igual."
+        },
+        {
+          "id": "apps-step-10",
+          "stepNumber": 10,
           "title": "Reflexión: ¿dónde aplicas esto mañana?",
           "description": "Último paso. Piensa en tus proyectos que hoy viven en local. Escribe tus respuestas para compartir con el grupo.",
           "prompt": null,
@@ -444,6 +748,45 @@
         {
           "id": "pmo-step-6",
           "stepNumber": 6,
+          "title": "Checks avanzados: frescura e integridad",
+          "description": "Más allá de nulos y duplicados, dos chequeos clave para confiar en los números: frescura de los datos e integridad referencial. Usa Genie Code para generarlos.",
+          "prompt": "Genera consultas SQL de validación adicionales sobre dacascan_ws1.inchcape_gold y repórtalas como una tabla con check, filas_afectadas y estado:\n1. FRESCURA: ¿cuál es la fecha más reciente en fact_vehicle_sales y en fact_service_orders? Marca FAIL si el dato más reciente tiene más de 45 días respecto de la fecha máxima de la tabla.\n2. INTEGRIDAD REFERENCIAL: órdenes de servicio (fact_service_orders) cuyo dealer_id no existe en dim_dealership.\n3. CONSISTENCIA DE INVENTARIO: piezas en fact_parts_inventory marcadas obsolete_flag = true pero con last_movement_date reciente (inconsistencia).\n4. Un resumen consolidado con el veredicto de si los datos están listos para reportar.",
+          "expectedOutput": "Consultas que reportan la fecha más reciente por tabla, órdenes con dealer_id inexistente, y piezas obsoletas con movimiento reciente (defecto sembrado), más un resumen.",
+          "tips": [
+            "Frescura + integridad referencial son los dos checks que más evitan reportar números incorrectos.",
+            "Automatiza estos checks en un notebook programado y tendrás un semáforo de calidad diario."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "pmo-step-7",
+          "stepNumber": 7,
+          "title": "Tablero de alertas y KPIs de proyecto",
+          "description": "PMO necesita ver desviaciones a tiempo. Usa Genie Code para generar las consultas de un tablero de alertas.",
+          "prompt": "Genera las consultas SQL para un tablero de alertas ejecutivo de Inchcape usando dacascan_ws1.inchcape_gold.fact_daily_kpis y las tablas gold:\n1. Países con caída de revenue mayor a 15% semana contra semana.\n2. Concesionarios con CSI promedio menor a 4.0 en el último mes (usa fact_service_orders).\n3. Concesionarios con margen bruto por debajo del promedio de su país.\n4. Top 5 de días con mayor número de órdenes de servicio canceladas.\n5. Un semáforo resumen: cuántas alertas activas por severidad.\n\nCada consulta lista para pegar en un dashboard AI/BI.",
+          "expectedOutput": "5 consultas SQL de alertas (caída de revenue, CSI bajo, margen bajo, cancelaciones, semáforo), listas para un dashboard AI/BI.",
+          "tips": [
+            "Un tablero de alertas responde '¿qué necesita mi atención hoy?', no solo '¿cómo vamos?'.",
+            "Define los umbrales (15%, CSI 4.0) con el negocio para que las alertas sean accionables."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "pmo-step-8",
+          "stepNumber": 8,
+          "title": "Exporta y comparte el reporte",
+          "description": "El último paso de un reporte es distribuirlo. Usa Genie Code para generar el export y el envío.",
+          "prompt": "Quiero exportar y compartir mi reporte de estado. Genera el código para:\n1. Tomar el resultado de una consulta de KPIs (revenue, unidades, CSI por país) y exportarlo a un archivo Excel o CSV en un Volume de Unity Catalog (/Volumes/dacascan_ws1/inchcape_gold/reportes/).\n2. Generar un resumen ejecutivo en markdown del reporte.\n3. Explica cómo programar esto como un job que, al terminar, envíe el archivo y el resumen por email o Slack.\n4. Explica cómo dar acceso al Volume solo a las personas indicadas.",
+          "expectedOutput": "Código que exporta el reporte a Excel/CSV en un Volume, genera un resumen markdown, y la explicación de cómo programar el envío y gobernar el acceso al Volume.",
+          "tips": [
+            "Guardar el reporte en un Volume gobernado da trazabilidad y control de acceso, a diferencia de un archivo suelto.",
+            "Programar el envío elimina el paso manual de 'exportar y adjuntar' cada semana."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "pmo-step-9",
+          "stepNumber": 9,
           "title": "Reflexión: ¿dónde aplicas esto mañana?",
           "description": "Último paso. Piensa en tus reportes y tareas repetitivas. Escribe tus respuestas para compartir con el grupo.",
           "prompt": null,
@@ -566,6 +909,45 @@
         {
           "id": "bi-step-7",
           "stepNumber": 7,
+          "title": "Traduce medidas DAX a Databricks SQL",
+          "description": "Si vienes de Power BI, tienes medidas DAX que migrar. Usa Genie Code para traducirlas a SQL equivalente.",
+          "prompt": "Traduce la siguiente medida DAX a una consulta Databricks SQL equivalente sobre dacascan_ws1.inchcape_gold.fact_vehicle_sales y dim_dealership:\n\nRevenue YoY % = \n  VAR Actual = CALCULATE(SUM(fact_vehicle_sales[sale_price_usd]), DATESINPERIOD(dim_date[Date], MAX(dim_date[Date]), -12, MONTH))\n  VAR Previo = CALCULATE(SUM(fact_vehicle_sales[sale_price_usd]), DATESINPERIOD(dim_date[Date], MAX(dim_date[Date]), -24, MONTH), DATESINPERIOD(dim_date[Date], MAX(dim_date[Date]), -12, MONTH))\n  RETURN DIVIDE(Actual - Previo, Previo)\n\nLa consulta debe calcular el crecimiento YoY de revenue por país usando funciones de fecha de Databricks SQL (DATE_ADD, INTERVAL).",
+          "expectedOutput": "Una consulta SQL con CTEs que calculan el periodo actual y el anterior y el crecimiento porcentual YoY por país, usando funciones de fecha de Databricks SQL.",
+          "tips": [
+            "Genie Code entiende DAX y SQL: pega tus medidas reales de Power BI y pide la traducción.",
+            "Este es el patrón clave para migrar reportes de Power BI a Databricks."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "bi-step-8",
+          "stepNumber": 8,
+          "title": "Crea una Metric View (capa semántica)",
+          "description": "Las Metric Views definen métricas reutilizables en Unity Catalog, como una capa semántica única. Usa Genie Code para generar una.",
+          "prompt": "Genera la definición de una Metric View en YAML para 'Ticket promedio por país' con estas características:\n- Nombre: ticket_promedio_por_pais\n- Tabla fuente: dacascan_ws1.inchcape_gold.fact_vehicle_sales\n- Medida: SUM(sale_price_usd) / SUM(units)\n- Dimensiones: país (desde dim_dealership vía JOIN por dealer_id), sale_date, oem_brand, segment\n- Granularidad temporal: diaria, mensual y trimestral\n\nGenera también el comando SQL CREATE VIEW / CREATE METRIC VIEW para registrarla en Unity Catalog.",
+          "expectedOutput": "Una definición YAML de Metric View (source, measures, dimensions) y el comando para registrarla en Unity Catalog.",
+          "tips": [
+            "Las Metric Views reemplazan medidas DAX dispersas por una capa semántica única que cualquier herramienta consume.",
+            "Empieza por tus KPIs más usados: ticket promedio, revenue, margen, unidades."
+          ],
+          "warningNote": "Metric Views puede requerir tener la feature habilitada en el workspace. Si el CREATE falla, el YAML sigue siendo útil como documentación de la métrica."
+        },
+        {
+          "id": "bi-step-9",
+          "stepNumber": 9,
+          "title": "Validaciones avanzadas de campos del reporte",
+          "description": "Amplía la validación del Step 2 con chequeos que suelen romper reportes de mercado. Usa Genie Code para generarlos.",
+          "prompt": "Genera consultas SQL de validación avanzada sobre dacascan_ws1.inchcape_gold para blindar mi reporte de mercado, cada una como una fila de un reporte de calidad (check, filas_afectadas, estado):\n1. Marcas OEM o segmentos con muy pocas ventas (menos de 10) que podrían distorsionar promedios.\n2. Meses con caídas o saltos anómalos de unidades vendidas (mayor a 3 desviaciones estándar del promedio mensual).\n3. Concesionarios activos en ventas pero sin país o región asignada (region NULL) — afectan agrupamientos.\n4. Ticket promedio negativo o cero por concesionario (señal de datos erróneos).\n5. Un resumen: ¿el reporte es CONFIABLE o requiere limpieza?",
+          "expectedOutput": "Consultas que detectan combinaciones con pocos datos, meses atípicos, concesionarios con region NULL (~14) y tickets inválidos, más un veredicto de confiabilidad.",
+          "tips": [
+            "Los outliers y los grupos con pocos datos son la causa #1 de promedios engañosos en reportes.",
+            "Corre estas validaciones ANTES de publicar: te ahorran correcciones vergonzosas después."
+          ],
+          "warningNote": null
+        },
+        {
+          "id": "bi-step-10",
+          "stepNumber": 10,
           "title": "Reflexión: ¿dónde aplicas esto mañana?",
           "description": "Último paso. Piensa en tus reportes recurrentes y tareas repetitivas. Escribe tus respuestas para compartir con el grupo.",
           "prompt": null,

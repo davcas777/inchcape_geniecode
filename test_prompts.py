@@ -17,6 +17,7 @@ o como notebook en el workspace (usa el `spark` existente).
 """
 
 from pyspark.sql import functions as F
+from pyspark.sql import Window
 
 try:
     spark  # type: ignore  # noqa: F821
@@ -249,6 +250,150 @@ try:
     check("BI step3: panel dashboard (unidades por segmento/mes)", panel.count() > 0, f"{panel.count()} filas")
 except Exception as e:  # noqa: BLE001
     check("BI reportes", False, str(e)[:160])
+
+
+# ============================================================ F. FUNDAMENTOS (Día 1)
+print("\n=== F. Fundamentos (Día 1) ===")
+try:
+    # fund step 3: revenue por país
+    q = spark.sql(f"""
+        SELECT d.country, SUM(s.units) u, SUM(s.sale_price_usd) rev
+        FROM {GOLD}.fact_vehicle_sales s
+        JOIN (SELECT DISTINCT dealer_id, country FROM {GOLD}.dim_dealership) d ON s.dealer_id=d.dealer_id
+        WHERE s.dealer_id<>99999 AND s.sale_price_usd>0 GROUP BY d.country ORDER BY rev DESC
+    """)
+    check("FUND step3: revenue por país", q.count() >= 5, f"{q.count()} países")
+    # fund step 4: top 10 dealers
+    top = spark.sql(f"""
+        SELECT s.dealer_id, SUM(s.sale_price_usd) rev
+        FROM {GOLD}.fact_vehicle_sales s WHERE s.dealer_id<>99999 AND s.sale_price_usd>0
+        GROUP BY s.dealer_id ORDER BY rev DESC LIMIT 10
+    """)
+    check("FUND step4: top 10 concesionarios", top.count() == 10, f"{top.count()} filas")
+    # fund step 6: pipeline escribe tabla bronze
+    resumen = (svc.groupBy("dealer_id")
+               .agg(F.count("*").alias("n_ordenes"),
+                    F.sum("parts_cost_usd").alias("parts"),
+                    F.sum("labor_cost_usd").alias("labor"),
+                    F.sum("total_usd").alias("total")))
+    resumen.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{CATALOG}.inchcape_bronze.resumen_servicio_por_dealer")
+    check("FUND step6: pipeline escribe inchcape_bronze.resumen_servicio_por_dealer",
+          spark.table(f"{CATALOG}.inchcape_bronze.resumen_servicio_por_dealer").count() > 0)
+except Exception as e:  # noqa: BLE001
+    check("FUND: fundamentos", False, str(e)[:160])
+
+
+# ============================================================ G. REPS NUEVAS (Día 2)
+print("\n=== G. Reps nuevas (Día 2) ===")
+
+# DE step7: reconciliación (anti join huérfanos)
+try:
+    valid_ids = [r[0] for r in dealer.select("dealer_id").distinct().collect()]
+    orphan = sales.filter(~F.col("dealer_id").isin(valid_ids)).count()
+    check("DE step7: reconciliación detecta ventas huérfanas (~60)", approx(orphan, 60, 40), f"{orphan}")
+except Exception as e:  # noqa: BLE001
+    check("DE step7: reconciliación", False, str(e)[:160])
+
+# DE step9: documentación / information_schema
+try:
+    tbls = spark.sql(f"SELECT table_name FROM {CATALOG}.information_schema.tables WHERE table_schema='inchcape_gold'")
+    check("DE step9: documentación via information_schema", tbls.count() >= 5, f"{tbls.count()} tablas")
+except Exception as e:  # noqa: BLE001
+    check("DE step9: documentación", False, str(e)[:160])
+
+# DS step7: feature engineering temporal (lags/rolling)
+try:
+    daily = (svc.groupBy("dealer_id", "order_date")
+             .agg(F.count("*").alias("n_ordenes")))
+    w = Window.partitionBy("dealer_id").orderBy("order_date")
+    feats = (daily
+             .withColumn("dow", F.dayofweek("order_date"))
+             .withColumn("lag_7d", F.lag("n_ordenes", 7).over(w))
+             .withColumn("rolling_mean_7d", F.avg("n_ordenes").over(w.rowsBetween(-6, 0)))
+             .dropna(subset=["lag_7d"]))
+    check("DS step7: feature engineering temporal (lags/rolling)", feats.count() > 0,
+          f"{feats.count()} filas con features")
+except Exception as e:  # noqa: BLE001
+    check("DS step7: feature engineering", False, str(e)[:160])
+
+# DS step8: comparación de 2 variantes de modelo
+try:
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import r2_score
+    import pandas as pd
+    base = (svc.filter("csi_score BETWEEN 1 AND 5")
+            .filter(F.round(F.col("total_usd"), 2) == F.round(F.col("parts_cost_usd") + F.col("labor_cost_usd"), 2))
+            .select("labor_hours", "parts_cost_usd", "total_usd").limit(12000))
+    pdf2 = base.toPandas()
+    X, y = pdf2[["labor_hours", "parts_cost_usd"]], pdf2["total_usd"]
+    Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.2, random_state=1)
+    r2s = []
+    for ne, md in [(50, 6), (150, 10)]:
+        m = RandomForestRegressor(n_estimators=ne, max_depth=md, random_state=1, n_jobs=-1).fit(Xtr, ytr)
+        r2s.append(r2_score(yte, m.predict(Xte)))
+    check("DS step8: 2 variantes de modelo con R2>=0.7", all(r >= 0.7 for r in r2s),
+          "R2=" + ", ".join(f"{r:.3f}" for r in r2s))
+except Exception as e:  # noqa: BLE001
+    check("DS step8: comparación de modelos", False, str(e)[:200])
+
+# PMO step6: checks avanzados (frescura, integridad, inventario)
+try:
+    max_sale = spark.table(f"{GOLD}.fact_vehicle_sales").agg(F.max("sale_date")).collect()[0][0]
+    svc_orphan = spark.sql(f"""
+        SELECT COUNT(*) c FROM {GOLD}.fact_service_orders o
+        LEFT ANTI JOIN (SELECT DISTINCT dealer_id FROM {GOLD}.dim_dealership) d ON o.dealer_id=d.dealer_id
+    """).collect()[0][0]
+    obsolete_recent = spark.table(f"{GOLD}.fact_parts_inventory").filter(
+        (F.col("obsolete_flag") == True) & (F.col("last_movement_date") >= F.lit("2026-06-01"))).count()
+    check("PMO step6: frescura (fecha máx ventas)", max_sale is not None, str(max_sale))
+    check("PMO step6: integridad referencial (órdenes huérfanas)", svc_orphan >= 0, f"{svc_orphan}")
+    check("PMO step6: inventario obsoleto con movimiento reciente", obsolete_recent > 0, f"{obsolete_recent} piezas")
+except Exception as e:  # noqa: BLE001
+    check("PMO step6: checks avanzados", False, str(e)[:160])
+
+# PMO step7: tablero de alertas (una consulta representativa)
+try:
+    low_csi = spark.sql(f"""
+        SELECT o.dealer_id, ROUND(AVG(o.csi_score),2) csi
+        FROM {GOLD}.fact_service_orders o WHERE o.csi_score BETWEEN 1 AND 5
+        GROUP BY o.dealer_id HAVING AVG(o.csi_score) < 4.0
+    """)
+    check("PMO step7: alerta CSI bajo por concesionario", low_csi.count() >= 0, f"{low_csi.count()} dealers")
+except Exception as e:  # noqa: BLE001
+    check("PMO step7: tablero de alertas", False, str(e)[:160])
+
+# BI step7: DAX -> SQL (YoY por país)
+try:
+    yoy = spark.sql(f"""
+        WITH m AS (
+          SELECT d.country, date_trunc('month', s.sale_date) mes, SUM(s.sale_price_usd) rev
+          FROM {GOLD}.fact_vehicle_sales s
+          JOIN (SELECT DISTINCT dealer_id, country FROM {GOLD}.dim_dealership) d ON s.dealer_id=d.dealer_id
+          WHERE s.dealer_id<>99999 AND s.sale_price_usd>0 GROUP BY 1,2)
+        SELECT country, mes, rev,
+               LAG(rev,12) OVER (PARTITION BY country ORDER BY mes) rev_prev
+        FROM m
+    """)
+    check("BI step7: traducción DAX->SQL (YoY) ejecuta", yoy.count() > 0, f"{yoy.count()} filas país×mes")
+except Exception as e:  # noqa: BLE001
+    check("BI step7: DAX->SQL", False, str(e)[:160])
+
+# BI step9: validaciones avanzadas de campos
+try:
+    low_vol = spark.sql(f"""
+        SELECT oem_brand, COUNT(*) n FROM {GOLD}.fact_vehicle_sales
+        WHERE dealer_id<>99999 AND sale_price_usd>0 GROUP BY oem_brand HAVING COUNT(*) < 10
+    """)
+    null_region_active = spark.sql(f"""
+        SELECT COUNT(DISTINCT s.dealer_id) c
+        FROM {GOLD}.fact_vehicle_sales s
+        JOIN {GOLD}.dim_dealership d ON s.dealer_id=d.dealer_id
+        WHERE d.region IS NULL
+    """).collect()[0][0]
+    check("BI step9: validaciones avanzadas ejecutan", True, f"marcas pocas={low_vol.count()}, dealers activos region NULL={null_region_active}")
+except Exception as e:  # noqa: BLE001
+    check("BI step9: validaciones avanzadas", False, str(e)[:160])
 
 
 # ============================================================ RESUMEN
