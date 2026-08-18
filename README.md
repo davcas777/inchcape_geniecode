@@ -18,7 +18,7 @@ Workshop práctico de **Genie Code dentro de Databricks**, re-skineado por compl
 - **Fecha de entrega:** 2026-08-26 (Bogotá + Medellín)
 - **Repo destino:** https://github.com/davcas777/inchcape_geniecode
 - **App en vivo (workspace de David):** https://inchcape-geniecode-workshop-520209755093735.15.azure.databricksapps.com _(detrás de SSO del workspace)_
-- **Estado:** datos generados en `dacascan_ws1` · **42/42 prompts validados** · app desplegada y RUNNING · workshop de 2 días (Día 1 fundamentos + Día 2 por equipo).
+- **Estado:** catálogo autocontenido `inchcape_workshop` (creado por el generador) · **42/42 prompts validados** · app desplegada y RUNNING · workshop de 2 días (Día 1 fundamentos + Día 2 por equipo).
 
 ## Objetivo
 Que cada uno de los 5 equipos de Inchcape aprenda a usar Genie Code para acelerar su trabajo diario, cubriendo a alto nivel los temas que solicitaron, con prompts probados que funcionan sobre datos sintéticos del dominio automotriz + SAP.
@@ -41,9 +41,9 @@ Que cada uno de los 5 equipos de Inchcape aprenda a usar Genie Code para acelera
 > **Decisión de estructura:** partimos del app original (4 tracks genéricos) y lo reorganizamos a un **Día 1 de Fundamentos común** + **5 tracks alineados a los 5 equipos** de Inchcape (Día 2). El Día 1 nivela a todos en Genie Code + Databricks; el Día 2 cada equipo profundiza. Se agregaron reps (mismo nivel alto) para llenar los 2 días. Los temas transversales (build-an-app, DAB/DBConnect, Data Mesh, UC) aparecen donde cada equipo los pidió.
 
 ## Datos del dominio
-Se generan con `generate_workshop_data.py`. Catálogo por defecto: **`dacascan_ws1`** (workspace de David). En delivery en el workspace de Inchcape, cambia la constante `CATALOG` del script y haz find-replace de `dacascan_ws1` en `data/tracks.json`.
+Se generan con `generate_workshop_data.py`, que **crea el catálogo `inchcape_workshop`** y todos los schemas/tablas por sí mismo — no necesitas nada preexistente (ideal para un workspace Free Edition desde cero). Todos los prompts de la app referencian exactamente este catálogo. Si cambias la constante `CATALOG` del script, haz el mismo find-replace en `data/tracks.json`.
 
-**`dacascan_ws1.inchcape_gold`** (capa curada de negocio):
+**`inchcape_workshop.inchcape_gold`** (capa curada de negocio):
 
 | Tabla | Descripción |
 |-------|-------------|
@@ -53,7 +53,7 @@ Se generan con `generate_workshop_data.py`. Catálogo por defecto: **`dacascan_w
 | `fact_parts_inventory` | ~80k snapshots de inventario de repuestos por concesionario. |
 | `fact_daily_kpis` | KPIs agregados por país × región × fecha. |
 
-**`dacascan_ws1.inchcape_sap_raw`** (capa cruda estilo SAP, para el ejercicio de automatización):
+**`inchcape_workshop.inchcape_sap_raw`** (capa cruda estilo SAP, para el ejercicio de automatización):
 
 | Tabla | Equivalente SAP |
 |-------|-----------------|
@@ -88,12 +88,25 @@ Para los ejercicios de **validación/consistencia** (tracks DE, PMO y Power BI):
 | `app.yaml`, `requirements.txt` | Configuración para Databricks Apps. |
 | `test_prompts.py` | Script de validación que ejecuta la solución canónica de cada prompt que toca datos, contra las tablas sintéticas. **42/42 checks PASS.** |
 
-## Preparación previa al workshop
-1. **Genera los datos:** ejecuta `generate_workshop_data.py` en el workspace (ver constante `CATALOG`).
-2. **Permisos:** otorga a los asistentes `USE CATALOG` y `SELECT` sobre `inchcape_gold` e `inchcape_sap_raw`.
-3. **Compute:** cada asistente necesita un cluster o SQL Warehouse activo con Genie Code habilitado.
-4. **FMAPI:** algunos pasos (agentes PMO/BI) usan el endpoint `databricks-claude-sonnet-4`. Verifica que exista o ajústalo.
-5. **App:** despliega la app de instrucciones (abajo) y comparte la URL con los asistentes.
+## Preparación desde cero (incluye Databricks Free Edition)
+Cada asistente arranca en su propio workspace nuevo. Todo lo necesario está en este repo.
+
+1. **Clona el repo** (o descárgalo):
+   ```bash
+   git clone https://github.com/davcas777/inchcape_geniecode.git
+   ```
+2. **Sube el generador a tu workspace.** Importa `generate_workshop_data.py` como notebook: en la UI, Workspace → (tu carpeta) → Import → File, o con la CLI:
+   ```bash
+   databricks workspace import /Workspace/Users/<tu-usuario>/generate_workshop_data \
+     --file generate_workshop_data.py --language PYTHON --format SOURCE --overwrite
+   ```
+3. **Ejecútalo** conectado a compute serverless. El script **crea el catálogo `inchcape_workshop`**, sus 4 schemas (`inchcape_gold`, `inchcape_sap_raw`, `inchcape_bronze`, `inchcape_silver`) y todas las tablas con los ~400 defectos. No necesitas crear nada a mano.
+4. **(Solo si compartes el workspace) Permisos:** si otros usuarios usarán tu catálogo, otórgales `USE CATALOG inchcape_workshop` y `SELECT` sobre los schemas. En Free Edition, cada quien genera su propio catálogo y es dueño, así que normalmente no hace falta.
+5. **Compute + Genie Code:** cada asistente necesita compute activo (serverless) con Genie Code habilitado (botón ✨ en el notebook).
+6. **FMAPI (opcional):** algunos pasos (agentes de PMO/BI, asistente de apps) usan el endpoint `databricks-claude-sonnet-4`. Si no existe en tu workspace, ajusta el nombre del modelo o revisa solo el código generado.
+7. **App de instrucciones:** despliega la app (abajo) y comparte la URL, o córrela local (`uvicorn main:app`). La app no necesita datos: solo sirve los prompts.
+
+> **Todos los prompts referencian `inchcape_workshop.inchcape_gold` / `inchcape_workshop.inchcape_sap_raw`**, exactamente lo que crea el generador. No hay que editar nada para que coincidan.
 
 ## Despliegue de la app
 ```bash

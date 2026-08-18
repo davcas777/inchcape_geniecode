@@ -14,11 +14,16 @@
 # rangos inválidos, inconsistencias) para los ejercicios de validación (tracks
 # Data Engineering, PMO & BA y Power BI).
 #
-# USO:
-#   - Ejecuta como notebook en Databricks con un cluster activo, o
-#   - Súbelo con `databricks workspace import` y córrelo con `databricks jobs`.
-#   Ajusta CATALOG a tu catálogo (por defecto dacascan_ws1 en el workspace de David;
-#   en el workspace de Inchcape, cámbialo por el catálogo del cliente).
+# USO (workspace nuevo, incl. Databricks Free Edition, desde cero):
+#   1. Sube este archivo como notebook (o impórtalo) en tu workspace de Databricks.
+#   2. Conéctalo a un compute serverless / SQL warehouse.
+#   3. Córrelo entero. El script CREA el catálogo `inchcape_workshop` y todos los
+#      schemas y tablas por sí mismo — no necesitas nada preexistente.
+#
+# IMPORTANTE: el catálogo y los schemas definidos aquí son la ÚNICA fuente de
+# verdad. Los prompts de la app (data/tracks.json) referencian exactamente
+# `inchcape_workshop.inchcape_gold` e `inchcape_workshop.inchcape_sap_raw`.
+# Si cambias CATALOG aquí, haz el mismo find-replace en data/tracks.json.
 # =============================================================================
 
 from pyspark.sql import functions as F
@@ -32,12 +37,33 @@ except NameError:
     spark = DatabricksSession.builder.serverless(True).getOrCreate()
 
 # ----------------------------------------------------------------------------- CONFIG
-CATALOG = "dacascan_ws1"          # <-- cámbialo por el catálogo de Inchcape en delivery
+# El catálogo por defecto es 'inchcape_workshop' (lo que usan los prompts de la app).
+# Se puede sobrescribir con un widget 'catalog' sin editar código, útil si ya tienes
+# un catálogo y no quieres/puedes crear uno nuevo.
+DEFAULT_CATALOG = "inchcape_workshop"
+try:
+    dbutils.widgets.text("catalog", DEFAULT_CATALOG)  # type: ignore  # noqa: F821
+    CATALOG = (dbutils.widgets.get("catalog") or DEFAULT_CATALOG).strip()  # type: ignore  # noqa: F821
+except Exception:
+    CATALOG = DEFAULT_CATALOG
+
 SAP_SCHEMA = "inchcape_sap_raw"
 GOLD_SCHEMA = "inchcape_gold"
 SEED = 42
 
 spark.conf.set("spark.sql.shuffle.partitions", "8")
+
+# Crea el catálogo del workshop. En Databricks Free Edition tienes Default Storage
+# habilitado, así que CREATE CATALOG funciona sin configurar almacenamiento. Si tu
+# metastore NO tiene storage por defecto (algunos workspaces enterprise), la creación
+# fallará; en ese caso pasa un catálogo EXISTENTE vía el widget 'catalog'.
+try:
+    spark.sql(f"CREATE CATALOG IF NOT EXISTS {CATALOG}")
+    spark.sql(f"COMMENT ON CATALOG {CATALOG} IS 'Genie Code Workshop — datos sintéticos Inchcape'")
+    print(f"Catálogo listo: {CATALOG}")
+except Exception as e:
+    print(f"⚠️  No se pudo crear el catálogo {CATALOG} ({str(e)[:120]}).")
+    print("   Se asume que ya existe o que tienes permiso de escritura en él.")
 
 for sch in [SAP_SCHEMA, GOLD_SCHEMA, "inchcape_bronze", "inchcape_silver"]:
     spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{sch}")

@@ -25,7 +25,12 @@ except NameError:
     from databricks.connect import DatabricksSession
     spark = DatabricksSession.builder.serverless(True).getOrCreate()
 
-CATALOG = "dacascan_ws1"
+DEFAULT_CATALOG = "inchcape_workshop"
+try:
+    dbutils.widgets.text("catalog", DEFAULT_CATALOG)  # type: ignore  # noqa: F821
+    CATALOG = (dbutils.widgets.get("catalog") or DEFAULT_CATALOG).strip()  # type: ignore  # noqa: F821
+except Exception:
+    CATALOG = DEFAULT_CATALOG
 GOLD = f"{CATALOG}.inchcape_gold"
 SAP = f"{CATALOG}.inchcape_sap_raw"
 SILVER = f"{CATALOG}.inchcape_silver"
